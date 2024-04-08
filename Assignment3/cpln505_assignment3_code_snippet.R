@@ -25,11 +25,31 @@ dat <- dat.voting %>% filter(VCF0004 == 2012 | VCF0004 == 2016) %>%
 rm(list = ls())
 library(tidyverse)
 
+setwd("/Users/luyiiwong/Documents/Planning_by_numbers/Module3")
+
+trip.data <- read.csv("trip_data.csv")
+
+person.data <- read.csv("person_data.csv")
+
+household.data <- read.csv("household_data.csv")
+
 #filtering, recategorizing, renaming, and selecting variables#### 
 #take trip dataset
 #step 1. choose bike, auto, and transit trips that ended at work locations
+trip.data <- trip.data %>%
+  filter(MODE_AGG == 2 | MODE_AGG == 3 | MODE_AGG == 5) %>%
+  filter(D_LOC_TYPE == 2)
+
 #step 2. recode modes to bike, car, and transit (please name the modes as such)
+trip.data <- trip.data %>%
+  mutate(mode_type = recode(MODE_AGG,
+                           `2` = "Bike",
+                           `3` = "Car",
+                           `5` = "Transit"))
+
 #step 3. some people took multiple work trips. for each person, keep only the first work trip
+trip.data <- trip.data %>%
+  group_by(PERSON_ID, TRIP_NUM)
 #step 4. select household id, person id, parking costs, travel time (model simulated), and travel distance (model simulated)
 
 #take person dataset
@@ -62,6 +82,7 @@ dat.car <- dat %>% filter(mode_cat == "car")
 dat.transit <- dat %>% filter(mode_cat == "transit")
 dat.bike <- dat %>% filter(mode_cat == "bike")
 
+## calculating potential travel time for each alternative mode of transit
 dat.car$time.car <- dat.car$travel_time
 dat.car$time.transit <- 60*(dat.car$travel_dist/ave.speed$ave_speed[2]) + 10 #add 10 minutes for waiting and walking to station
 dat.car$time.bike <- 60*(dat.car$travel_dist/ave.speed$ave_speed[3])
