@@ -32,6 +32,9 @@ trip.data <- read.csv("trip_data.csv")
 person.data <- read.csv("person_data.csv")
 
 household.data <- read.csv("household_data.csv")
+trip.data<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\4_Trip_Public.csv")
+person.data<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\2_Person_Public.csv")
+Household_public<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\1_Household_Public.csv")
 
 #filtering, recategorizing, renaming, and selecting variables#### 
 #take trip dataset
