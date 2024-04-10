@@ -32,10 +32,13 @@ setwd("/Users/luyiiwong/Documents/Planning_by_numbers/Module3")
 #filtering, recategorizing, renaming, and selecting variables#### 
 #take trip dataset
 trip.dat <- read.csv("trip_data.csv")
+
 #yujin dataset
-trip.dat<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\4_Trip_Public.csv")
-person.dat<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\2_Person_Public.csv")
-household.dat<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\1_Household_Public.csv")
+#trip.dat<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\4_Trip_Public.csv")
+#person.dat<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\2_Person_Public.csv")
+#household.dat<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\1_Household_Public.csv")
+
+
 #step 1. choose bike, auto, and transit trips that ended at work locations
 trip.dat <- trip.dat %>%
   filter(MODE_AGG %in% c(2, 3, 5) & D_LOC_TYPE == 2)
@@ -45,7 +48,7 @@ trip.dat <- trip.dat %>%
 
 #step 2. recode modes to bike, car, and transit (please name the modes as such)
 trip.dat <- trip.dat %>%
-  mutate(tranist_mode = as.factor(
+  mutate(transit_mode = as.factor(
     recode(MODE_AGG,
            `2` = "bike",
            `3` = "car",
@@ -59,8 +62,10 @@ trip.dat <- trip.dat %>%
 #step 4. select household id, person id, parking costs, travel time (model simulated), and travel distance (model simulated)
 
 trip.dat <- trip.dat %>%
-  select(HH_ID, PERSON_ID, Model_TravTime, Model_TravDist)
-
+  select(HH_ID, PERSON_ID, Model_TravTime, Model_TravDist, transit_mode) %>%
+  rename(travel_time = Model_TravTime,
+         travel_dist= Model_TravDist)
+  
 #take person dataset
 person.dat <- read.csv("person_data.csv")
 
@@ -107,7 +112,7 @@ person.dat <- person.dat %>%
     recode(LIC,
            `1` = "Yes",
            `2` = "No"))) %>%
-  mutate(transit_mode = as.factor(
+  mutate(work_mode = as.factor(
     recode(WK_MODE,
            `1` = "Car",
            `2` = "Carpool",
@@ -129,7 +134,7 @@ person.dat <- person.dat %>%
 
 #step 4. select only the relevant variables
 person.dat <- person.dat %>%
-  select(HH_ID, PERSON_ID, education, driver_license, transit_mode, parking_subsidy, transit_subsidy)
+  select(HH_ID, PERSON_ID, education, driver_license, work_mode, parking_subsidy, transit_subsidy)
 
 #take household dataset
 household.dat <- read_csv("household_data.csv")
@@ -197,26 +202,31 @@ household.dat <- household.dat %>%
 #step 1. join trip, person, and household datasets
 dat <- merge(trip.dat, person.dat, by = "HH_ID", all.x = FALSE, all.y=FALSE, sort = FALSE) 
 dat <- merge(household.dat, dat, by = "HH_ID", all.x = FALSE, all.y=FALSE, sort = FALSE)
+
 #step 2. examine variables, remove outliers (let's keep only people who travel < 10 miles, < 120 minutes, and paid <$50 for parking)
 dat <- dat %>%
-  filter(Model_TravDist < 10,
-         Model_TravTime < 120)
+  filter(travel_dist < 10,
+         travel_time < 120)
+
 #step 3. remove NAs. if this step leaves you with a few observations (say, a few hundred), then inspect variables to see
 #if certain variable has lots of NAs and whether it would be reasonable to remove that variable altogether in order to
 #preserve sample size
 any(is.na(dat))
 sum(is.na(dat))
 
+## removing NA rows
+dat <- na.omit(dat)
+
 #we will do the following in class####
 #calculating average speed for each mode
-ave.speed <- dat %>% group_by(mode_cat) %>%
+ave.speed <- dat %>% group_by(transit_mode) %>%
   summarise(ave_speed = mean(travel_dist/(travel_time/60)))
 
 #calculating travel time for alternative modes
 #need to do it one mode at a time
-dat.car <- dat %>% filter(mode_cat == "car")
-dat.transit <- dat %>% filter(mode_cat == "transit")
-dat.bike <- dat %>% filter(mode_cat == "bike")
+dat.car <- dat %>% filter(transit_mode == "car")
+dat.transit <- dat %>% filter(transit_mode == "transit")
+dat.bike <- dat %>% filter(transit_mode == "bike")
 
 dat.car$time.car <- dat.car$travel_time
 dat.car$time.transit <- 60*(dat.car$travel_dist/ave.speed$ave_speed[2]) + 10 #add 10 minutes for waiting and walking to station
