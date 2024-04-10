@@ -10,41 +10,49 @@ load("cpln505_assignment3_voting_data_abb.rda")
 load("/Users/luyiiwong/Documents/GitHub/PlanningbyNumbers/Assignment3/cpln505_assignment3_voting_data_abb.rda")
 
 #Here is some data cleaning code to get you started
-dat <- dat.voting %>% filter(VCF0004 == 2012 | VCF0004 == 2016) %>%
-  rename(candidate = VCF0704a, income=VCF0114, year = VCF0004, religion=VCF0128, education=VCF0140a, class=VCF0148a, party=VCF0302, race = VCF0105a) %>%
-  select(year, candidate, income, year, religion, education, class, party, race) %>%
-  filter(race != 9, candidate != 0, education != 9, class !=9, !party %in% c(8, 9)) %>%
+dat01 <- dat.voting %>% filter(VCF0004 == 2012 | VCF0004 == 2016) %>%
+  rename(candidate = VCF0704a, income=VCF0114, year = VCF0004, religion=VCF0128, education=VCF0140a, party=VCF0302, race = VCF0105a, age=VCF0101) %>%
+  select(year, candidate, income, year, religion, education, party, race, age) %>%
+  filter(race != 9, candidate != 0, income != 0, religion != 0, !education %in% c(8, 9), !party %in% c(8, 9), !age <=17) %>%
   mutate(
     race_cat = as.factor(recode(race,
                                      `1` = "white",
                                      `2` = "black",
                                      `3` = "Asian",
-                                     `4` = "Indian",
+                                     `4` = "American Indian",
                                      `5` = "Hispanic",
                                      `6` = "other")),
     candidate_cat=as.factor(recode(candidate,
                                    `1` = "Democrat",
                                    `2` = "Republican")),
     income_cat=as.factor(recode(income,
-                              `1`="lower income",
-                              `2`="lower income",
-                              `3`="middle income",
-                              `4`="high income",
-                              `5`="high income")),
+                              `1`= "lower income",
+                              `2`= "lower income",
+                              `3`= "middle income",
+                              `4`= "high income",
+                              `5`= "high income")),
     religion_cat=as.factor(recode(religion,
                                   `1`="Protestant",
                                   `2`="Catholic",
                                   `3`="Jewish",
                                   `4`="Other")),
     education_cat=as.factor(recode(education,
-                                   `1`=)))
-`1` = "Below HS",
-`2` = "Below HS",
-`3` = "HS",
-`4` = "Some College",
-`5` = "BS Degree",
-`6` = "Graduate Degree",
-`97` = "Other")))
+                                   `1` = "Below HS",
+                                   `2` = "Below HS",
+                                   `3` = "HS",
+                                   `4` = "HS",
+                                   `5` = "Some College",
+                                   `6` = "BS Degree",
+                                   `7` = "Graduate Degree")),
+    party_cat=as.factor(recode(party,
+                               `1` = "Republican",
+                               `2` = "Independent",
+                               `3` = "None",
+                               `4` = "Other",
+                               `5` = "Democrat")))%>%
+  select(-candidate,-income,-religion,-education,-party,-race)
+                               
+
 
 
 
