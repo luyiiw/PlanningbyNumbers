@@ -1,11 +1,10 @@
 #ASSIGNMENT 3####
-# IN CLASS DEMO VER###
 rm(list = ls())
 library(haven)
 library(arm)
 library(tidyverse)
 
-#VOTING####
+#Question 1: Voting####
 load("/Users/luyiiwong/Documents/GitHub/PlanningbyNumbers/Assignment3/cpln505_assignment3_voting_data_abb.rda")
 
 #Here is some data cleaning code to get you started
@@ -22,14 +21,17 @@ dat <- dat.voting %>% filter(VCF0004 == 2012 | VCF0004 == 2016) %>%
                                      `6` = "other")))
 
 
-#HHTS####
+#Question 2: Work Transit####
 rm(list = ls())
 library(tidyverse)
 
+#Task 1: Selecting Variables####
 #set working directory 
 setwd("/Users/luyiiwong/Documents/Planning_by_numbers/Module3")
 
-#filtering, recategorizing, renaming, and selecting variables#### 
+
+##Trip data####
+#filtering, recategorizing, renaming, and selecting variables
 #take trip dataset
 trip.dat <- read.csv("trip_data.csv")
 
@@ -37,7 +39,6 @@ trip.dat <- read.csv("trip_data.csv")
 #trip.dat<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\4_Trip_Public.csv")
 #person.dat<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\2_Person_Public.csv")
 #household.dat<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\1_Household_Public.csv")
-
 
 #step 1. choose bike, auto, and transit trips that ended at work locations
 trip.dat <- trip.dat %>%
@@ -65,7 +66,8 @@ trip.dat <- trip.dat %>%
   select(HH_ID, PERSON_ID, Model_TravTime, Model_TravDist, transit_mode) %>%
   rename(travel_time = Model_TravTime,
          travel_dist= Model_TravDist)
-  
+
+##Person data####  
 #take person dataset
 person.dat <- read.csv("person_data.csv")
 
@@ -136,6 +138,7 @@ person.dat <- person.dat %>%
 person.dat <- person.dat %>%
   select(HH_ID, PERSON_ID, education, driver_license, work_mode, parking_subsidy, transit_subsidy)
 
+##Household data####
 #take household dataset
 household.dat <- read_csv("household_data.csv")
 
@@ -198,6 +201,7 @@ household.dat <- household.dat %>%
 household.dat <- household.dat %>%
   select(-H_COUNTY, -A_TYPE, -INCOME)
 
+##Joining data sets####
 #joining trip dataset to person dataset
 #step 1. join trip, person, and household datasets
 dat <- merge(trip.dat, person.dat, by = "HH_ID", all.x = FALSE, all.y=FALSE, sort = FALSE) 
@@ -217,7 +221,6 @@ sum(is.na(dat))
 ## removing NA rows
 dat <- na.omit(dat)
 
-#we will do the following in class####
 #calculating average speed for each mode
 ave.speed <- dat %>% group_by(transit_mode) %>%
   summarise(ave_speed = mean(travel_dist/(travel_time/60)))
@@ -229,16 +232,16 @@ dat.transit <- dat %>% filter(transit_mode == "transit")
 dat.bike <- dat %>% filter(transit_mode == "bike")
 
 dat.car$time.car <- dat.car$travel_time
-dat.car$time.transit <- 60*(dat.car$travel_dist/ave.speed$ave_speed[2]) + 10 #add 10 minutes for waiting and walking to station
-dat.car$time.bike <- 60*(dat.car$travel_dist/ave.speed$ave_speed[3])
+dat.car$time.transit <- 60*(dat.car$travel_dist/ave.speed$ave_speed[3]) + 10 #add 10 minutes for waiting and walking to station
+dat.car$time.bike <- 60*(dat.car$travel_dist/ave.speed$ave_speed[1])
 
 dat.transit$time.transit <- dat.transit$travel_time + 10
-dat.transit$time.car <- 60*(dat.transit$travel_dist/ave.speed$ave_speed[1])
-dat.transit$time.bike <- 60*(dat.transit$travel_dist/ave.speed$ave_speed[3])
+dat.transit$time.car <- 60*(dat.transit$travel_dist/ave.speed$ave_speed[2])
+dat.transit$time.bike <- 60*(dat.transit$travel_dist/ave.speed$ave_speed[1])
 
 dat.bike$time.bike <- dat.bike$travel_time
-dat.bike$time.car <- 60*(dat.bike$travel_dist/ave.speed$ave_speed[1])
-dat.bike$time.transit <- 60*(dat.bike$travel_dist/ave.speed$ave_speed[2]) + 10
+dat.bike$time.car <- 60*(dat.bike$travel_dist/ave.speed$ave_speed[2])
+dat.bike$time.transit <- 60*(dat.bike$travel_dist/ave.speed$ave_speed[3]) + 10
 
 #an overwhelming number of people drove
 #let's take a subset so that the mode split is more balanced
@@ -262,8 +265,9 @@ dat$cost.bike <- dat$travel_dist + 3
 #shaping data into correct format
 library(mlogit)
 dat.logit <- mlogit.data(dat, shape="wide", 
-                      choice="mode_cat", 
-                      varying=c(22:27)) 
+                      choice="transit_mode", 
+                      varying=c(18:23)) 
+summary(dat.logit)
 #the 23:28 are column numbers of the alternative specific variables we created
 #your column numbers might not be the same as mine
 
@@ -274,11 +278,21 @@ dat.logit <- mlogit.data(dat, shape="wide",
 #estimating multinomial logit model
 #formula specification
 #(dependent variable ~ alt. specific with generic coef. | individual specific | alt. specific with alt. specific coef.)
-
 names(dat)
+
 #fit a simple one for now
-mod.1 <- mlogit (mode_cat ~ cost + income | income_cat, data = dat.logit)
+mod.1 <- mlogit (transit_mode ~ cost + time | hh_income , data = dat.logit, reflevel = "car", method="nr")
 summary(mod.1)
+
+mod.2 <- mlogit (transit_mode ~ cost + time | hh_income + education + driver_license + county + area_type, 
+                 data = dat.logit, reflevel = "car", method="nr")
+summary(mod.2)
+
+mod.3 <- mlogit (transit_mode ~ cost + time | hh_income + education + driver_license + county + area_type 
+                 + parking_subsidy + transit_subsidy
+                 , data = dat.logit, reflevel = "car", method="nr")
+summary(mod.3)
+
 
 #predicting
 mode.prob <- data.frame(fitted(mod.1, outcome = FALSE))
