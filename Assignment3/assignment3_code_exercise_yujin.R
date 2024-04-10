@@ -6,21 +6,57 @@ library(arm)
 library(tidyverse)
 
 #VOTING####
+load("cpln505_assignment3_voting_data_abb.rda")
 load("/Users/luyiiwong/Documents/GitHub/PlanningbyNumbers/Assignment3/cpln505_assignment3_voting_data_abb.rda")
 
 #Here is some data cleaning code to get you started
 dat <- dat.voting %>% filter(VCF0004 == 2012 | VCF0004 == 2016) %>%
-  rename(candidate = VCF0704a, year = VCF0004, race = VCF0105a) %>%
-  select(year, candidate, race) %>%
-  filter(race != 9, candidate != 0) %>%
-  mutate(race_cat = as.factor(recode(race,
+  rename(candidate = VCF0704a, income=VCF0114, year = VCF0004, religion=VCF0128, education=VCF0140a, class=VCF0148a, party=VCF0302, race = VCF0105a) %>%
+  select(year, candidate, income, year, religion, education, class, party, race) %>%
+  filter(race != 9, candidate != 0, education != 9, class !=9, !party %in% c(8, 9)) %>%
+  mutate(
+    race_cat = as.factor(recode(race,
                                      `1` = "white",
                                      `2` = "black",
-                                     `3` = "other",
-                                     `4` = "other",
-                                     `5` = "other",
-                                     `6` = "other")))
+                                     `3` = "Asian",
+                                     `4` = "Indian",
+                                     `5` = "Hispanic",
+                                     `6` = "other")),
+    candidate_cat=as.factor(recode(candidate,
+                                   `1` = "Democrat",
+                                   `2` = "Republican")),
+    income_cat=as.factor(recode(income,
+                              `1`="lower income",
+                              `2`="lower income",
+                              `3`="middle income",
+                              `4`="high income",
+                              `5`="high income")),
+    religion_cat=as.factor(recode(religion,
+                                  `1`="Protestant",
+                                  `2`="Catholic",
+                                  `3`="Jewish",
+                                  `4`="Other")),
+    education_cat=as.factor(recode(education,
+                                   `1`=)))
+`1` = "Below HS",
+`2` = "Below HS",
+`3` = "HS",
+`4` = "Some College",
+`5` = "BS Degree",
+`6` = "Graduate Degree",
+`97` = "Other")))
 
+
+
+
+
+table(dat.voting$VCF0704a)
+table(dat.voting$VCF01114)
+table(dat.voting$VCF0128)
+table(dat.voting$VCF0140a)
+table(dat.voting$VCF0148a)
+table(dat.voting$VCF0302)
+table(dat.voting$VCF0105a)
 
 #HHTS####
 rm(list = ls())
@@ -209,8 +245,8 @@ sum(is.na(dat))
 
 #we will do the following in class####
 #calculating average speed for each mode
-ave.speed <- dat %>% group_by(mode_cat) %>%
-  summarise(ave_speed = mean(travel_dist/(travel_time/60)))
+ave.speed <- dat %>% group_by(transit_mode) %>%
+  summarise(ave_speed = mean(Nodel_Traveldist/(travel_time/60)))
 
 #calculating travel time for alternative modes
 #need to do it one mode at a time
@@ -247,15 +283,15 @@ dat$cost.transit <- dat$travel_dist * 0.5 + 2
 
 #add $3 for non-monetary cost and wear and tear
 #Logan et al. (2023) #https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10546027/
-dat$cost.bike <- dat$travel_dist + 3 
+dat$cost.bike <- dat$travel_dist + 3 ###for the model experiment (question mark for this adding 3)
 
 #shaping data into correct format
 library(mlogit)
 dat.logit <- mlogit.data(dat, shape="wide", 
                       choice="mode_cat", 
-                      varying=c(22:27)) 
-#the 23:28 are column numbers of the alternative specific variables we created
-#your column numbers might not be the same as mine
+                      varying=c(22:27)) ##22:27 time.cost changes to time field
+#the 22:27 are column numbers of the alternative specific variables we created
+#your column numbers might not be the same as mine(it took a long time for summer!!)
 
 #notice the time and cost variables? we did not create them, 
 #but mlogit was able to figure it out based on the naming
@@ -267,7 +303,11 @@ dat.logit <- mlogit.data(dat, shape="wide",
 
 names(dat)
 #fit a simple one for now
-mod.1 <- mlogit (mode_cat ~ cost + income | income_cat, data = dat.logit)
+mod.1 <- mlogit (mode_cat ~ cost + time | income_cat, data = dat.logit, reflevel="car", method="nr")
+##if you think that time is also alt. specific with generic coef
+summary(mod.1)
+
+mod.1 <- mlogit (mode_cat ~ cost + income | income_cat, data = dat.logit)   
 summary(mod.1)
 
 #predicting
