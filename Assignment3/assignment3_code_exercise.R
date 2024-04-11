@@ -281,16 +281,16 @@ summary(dat.logit)
 names(dat)
 
 #fit a simple one for now
-mod.1 <- mlogit (transit_mode ~ cost + time | hh_income , data = dat.logit, reflevel = "car", method="nr")
+mod.1 <- mlogit (transit_mode ~ cost + time | hh_income , data = dat.logit, reflevel = "car")
 summary(mod.1)
 
 mod.2 <- mlogit (transit_mode ~ cost + time | hh_income + education + driver_license + county + area_type, 
-                 data = dat.logit, reflevel = "car", method="nr")
+                 data = dat.logit, reflevel = "car")
 summary(mod.2)
 
 mod.3 <- mlogit (transit_mode ~ cost + time | hh_income + education + driver_license + county + area_type 
                  + parking_subsidy + transit_subsidy
-                 , data = dat.logit, reflevel = "car", method="nr")
+                 , data = dat.logit, reflevel = "car")
 summary(mod.3)
 
 
