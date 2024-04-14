@@ -231,6 +231,8 @@ dat.car <- dat %>% filter(transit_mode == "car")
 dat.transit <- dat %>% filter(transit_mode == "transit")
 dat.bike <- dat %>% filter(transit_mode == "bike")
 
+
+## bike=1, car=2, transit=3
 dat.car$time.car <- dat.car$travel_time
 dat.car$time.transit <- 60*(dat.car$travel_dist/ave.speed$ave_speed[3]) + 10 #add 10 minutes for waiting and walking to station
 dat.car$time.bike <- 60*(dat.car$travel_dist/ave.speed$ave_speed[1])
@@ -268,12 +270,54 @@ dat.logit <- mlogit.data(dat, shape="wide",
                       choice="transit_mode", 
                       varying=c(18:23)) 
 summary(dat.logit)
-#the 23:28 are column numbers of the alternative specific variables we created
-#your column numbers might not be the same as mine
+#the 18:23 are column numbers of the alternative specific variables we created
 
-#notice the time and cost variables? we did not create them, 
-#but mlogit was able to figure it out based on the naming
-#scheme we used when creating the time.mode and cost.mode variables
+
+#Task 2: Exploratory Data Analysis ####
+# make sure that the variables have the correct data type
+
+dat$HH_ID <- as.character(dat$HH_ID)
+dat$PERSON_ID.x <- as.character(dat$PERSON_ID.x)
+dat$PERSON_ID.y <- as.character(dat$PERSON_ID.y)  
+
+dat$hh_income <- as.factor(dat$hh_income)
+
+## Summary Statistics Table####
+library(vtable)
+sumtable(dat)
+# should we remove the categorical variables from this summary table?
+# creating a table for only continuous variables...
+
+cont.dat <- dat %>%
+  select(household_size, total_veh, toll_account, travel_time, travel_dist, time.car, time.transit, time.bike, cost.car,
+         cost.transit, cost.transit)
+
+sumtable(cont.dat)
+
+## Charts for Categorical Variables####
+library(ggplot2)
+library(dplyr)
+
+cat.dat <- dat %>%
+  select(county, area_type, hh_income, transit_mode, education, driver_license, work_mode, parking_subsidy, 
+         transit_subsidy)
+
+categorical_vars <- c("area_type", "hh_income", "transit_mode", "education", 
+                      "driver_license", "work_mode", "parking_subsidy", 
+                      "transit_subsidy")
+
+cat.dat_long <- cat.dat %>%
+  pivot_longer(cols = categorical_vars, names_to = "variable", values_to = "value")
+
+ggplot(cat.dat_long, aes(x = value)) +
+  geom_bar() +
+  labs(x = "", y = "Frequency") +
+  facet_wrap(~ variable, scales = "free", ncol = 2) +  
+  theme_minimal()
+
+#should we plot this by count or percentage?
+
+
 
 #estimating multinomial logit model
 #formula specification
@@ -284,15 +328,23 @@ names(dat)
 mod.1 <- mlogit (transit_mode ~ cost + time | hh_income , data = dat.logit, reflevel = "car")
 summary(mod.1)
 
-mod.2 <- mlogit (transit_mode ~ cost + time | hh_income + education + driver_license + county + area_type, 
+mod.2 <- mlogit (transit_mode ~ cost + time | hh_income + education + driver_license + county, 
                  data = dat.logit, reflevel = "car")
 summary(mod.2)
 
-mod.3 <- mlogit (transit_mode ~ cost + time | hh_income + education + driver_license + county + area_type 
-                 + parking_subsidy + transit_subsidy
-                 , data = dat.logit, reflevel = "car")
+mod.3 <- mlogit (transit_mode ~ cost + time | hh_income + education + driver_license + county + area_type, 
+                 data = dat.logit, reflevel = "car")
 summary(mod.3)
 
+mod.4 <- mlogit (transit_mode ~ cost + time | hh_income + education + driver_license + county + area_type 
+                 + parking_subsidy + transit_subsidy
+                 , data = dat.logit, reflevel = "car")
+summary(mod.4)
+
+mod.5 <- mlogit (transit_mode ~ cost + time | driver_license + county + area_type + work_mode
+                 + parking_subsidy + transit_subsidy + household_size + total_veh
+                 , data = dat.logit, reflevel = "car")
+summary(mod.5)
 
 #predicting
 mode.prob <- data.frame(fitted(mod.1, outcome = FALSE))
