@@ -359,8 +359,29 @@ for (i in 1:length(dat$HH_ID)) {
 
 #calculate model fit statistics####
 
+AIC(mod.test)
+AIC(mod.final)
+lrtest(mod.test, mod.final)
 
-#count R squared
+# CHECK from here on####
+table(mod.final$pred_mode)
+
+#count R squared - percent of observations correctly predicted by the model
+library(nnet)
+summary(mod.final)
+
+#CONFUSION MATRIX?
+prop.table(table(predicted = stem.samp$pred_field, 
+                 observed = stem.samp$job.cat), margin = 2)
+
+
+
+table(observed = mod.final$transit_mode$job.cat, predicted = predict(object = mod.2))
+
+prop.table(table(observed = mod.2$model$job.cat, 
+                 predicted = predict(object = mod.2)), margin = 1)
+
+
 #misclassification error
 #correct rate for car
 #correct rate for transit
