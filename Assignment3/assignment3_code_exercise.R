@@ -315,58 +315,39 @@ ggplot(cat.dat_long, aes(x = value)) +
   facet_wrap(~ variable, scales = "free", ncol = 2) +  
   theme_minimal()
 
-#should we plot this by count or percentage?
+  
+# should we plot this by count or percentage?
+# how should we do plots? what do we plot?
 
-
-
+#Task 3: Multinomial Logit Model####
 #estimating multinomial logit model
 #formula specification
 #(dependent variable ~ alt. specific with generic coef. | individual specific | alt. specific with alt. specific coef.)
 names(dat)
 
-#fit a simple one for now
-mod.1 <- mlogit (transit_mode ~ cost + time | hh_income , data = dat.logit, reflevel = "car")
-summary(mod.1)
+#test model includes all variables that we selected prior to data cleaning 
+mod.test <-  mlogit (transit_mode ~ cost + time | household_size + total_veh + toll_account + county +
+                       area_type + hh_income + education + driver_license + work_mode + parking_subsidy +
+                       transit_subsidy
+                     , data = dat.logit, reflevel = "car")
+summary(mod.test)
 
-mod.2 <- mlogit (transit_mode ~ cost + time | hh_income + education + driver_license + county, 
-                 data = dat.logit, reflevel = "car")
-summary(mod.2)
-
-mod.3 <- mlogit (transit_mode ~ cost + time | hh_income + education + driver_license + county + area_type, 
-                 data = dat.logit, reflevel = "car")
-summary(mod.3)
-
-mod.4 <- mlogit (transit_mode ~ cost + time | hh_income + education + driver_license + county + area_type 
-                 + parking_subsidy + transit_subsidy
-                 , data = dat.logit, reflevel = "car")
-summary(mod.4)
-
-mod.5 <- mlogit (transit_mode ~ cost + time | driver_license + county + area_type + work_mode
-                 + parking_subsidy + transit_subsidy + household_size + total_veh
-                 , data = dat.logit, reflevel = "car")
-summary(mod.5)
+# backward selection for final model
+mod.final <- mlogit (transit_mode ~ cost + time | household_size +  hh_income + work_mode + total_veh
+                    , data = dat.logit, reflevel = "car")
+summary(mod.final)
 
 #predicting
-mode.prob <- data.frame(fitted(mod.1, outcome = FALSE))
+mode.prob <- data.frame(fitted(mod.final, outcome = FALSE))
 dat <- cbind.data.frame(dat, mode.prob)
 
 dat$pred_mode <- 0
 
 #use actual share in observed as thresholds
-table(dat$mode_agg)/length(dat$mode_agg)
+#table(dat$mode_agg)/length(dat$mode_agg)
 
-for (i in 1:length(dat$hh_id)) {
-  if (dat$car[i] > ) {
-    dat$pred_mode[i] = "car"
-  } else if (dat$transit[i] > ) {
-    dat$pred_mode[i] = "transit"
-  } else if (dat$bike[i] > ) {
-    dat$pred_mode[i] = "bike"
-  }
-}
-
-#do not use this for now because it predicts bike poorly
-for (i in 1:length(dat$hh_id)) {
+#applying predicted transit mode for the whole data set based on probabilities
+for (i in 1:length(dat$HH_ID)) {
   if (dat$car[i] > dat$bike[i] & dat$car[i] > dat$transit[i]) {
     dat$pred_mode[i] = "car"
   } else if (dat$transit[i] > dat$car[i] & dat$transit[i] > dat$bike[i]) {
@@ -377,6 +358,8 @@ for (i in 1:length(dat$hh_id)) {
 }
 
 #calculate model fit statistics####
+
+
 #count R squared
 #misclassification error
 #correct rate for car
