@@ -73,7 +73,7 @@ person.dat <- read.csv("person_data.csv")
 
 #step 1. identify personal variables that might be associated with mode choice (be careful about the 988 value for race)
 person.dat <- person.dat %>%
-  select(HH_ID, PERSON_ID, EDUCA, LIC, WK_MODE, PARK_SUB, TRAN_SUB)
+  select(HH_ID, PERSON_ID, EDUCA, LIC, PARK_SUB, TRAN_SUB)
 
 #step 2. for each variable, remove meaningless values
 ## removing NA rows
@@ -86,10 +86,6 @@ person.dat <- person.dat[!(person.dat$EDUCA %in% "98"),]
 ## removing people with unknown license
 person.dat <- person.dat[!(person.dat$LIC %in% "99"),]
 person.dat <- person.dat[!(person.dat$LIC %in% "98"),]
-
-## removing odd data and refused answer for WORK_MODE
-person.dat <- person.dat[!(person.dat$WK_MODE %in% "0"),]
-person.dat <- person.dat[!(person.dat$WK_MODE %in% "9"),]
 
 ## removing don't know and refused answer for PARK_SUB
 person.dat <- person.dat[!(person.dat$PARK_SUB %in% "8"),]
@@ -114,16 +110,6 @@ person.dat <- person.dat %>%
     recode(LIC,
            `1` = "Yes",
            `2` = "No"))) %>%
-  mutate(work_mode = as.factor(
-    recode(WK_MODE,
-           `1` = "Car",
-           `2` = "Carpool",
-           `3` = "Car and Transit",
-           `4` = "Tranist",
-           `5` = "Bicylce",
-           `6` = "Walking",
-           `7` = "Other",
-           `8` = "WFH"))) %>%
   mutate(parking_subsidy = as.factor(
     recode(PARK_SUB,
            `1` = "Subsidized Parking",
@@ -136,7 +122,7 @@ person.dat <- person.dat %>%
 
 #step 4. select only the relevant variables
 person.dat <- person.dat %>%
-  select(HH_ID, PERSON_ID, education, driver_license, work_mode, parking_subsidy, transit_subsidy)
+  select(HH_ID, PERSON_ID, education, driver_license, parking_subsidy, transit_subsidy)
 
 ##Household data####
 #take household dataset
@@ -172,12 +158,12 @@ household.dat <- household.dat %>%
            `34021` = "Mercer"))) %>%
   mutate(area_type = as.factor(
     recode(A_TYPE,
-           `1` = "CBD",
-           `2` = "CBD Fringe",
+           `1` = "Urban",
+           `2` = "Urban",
            `3` = "Urban",
            `4` = "Suburban",
            `5` = "Rural",
-           `6` = "Open Rural")))
+           `6` = "Rural")))
 
 ## renaming columns 
 household.dat <- household.dat %>%
@@ -215,8 +201,8 @@ dat <- dat %>%
 #step 3. remove NAs. if this step leaves you with a few observations (say, a few hundred), then inspect variables to see
 #if certain variable has lots of NAs and whether it would be reasonable to remove that variable altogether in order to
 #preserve sample size
-#any(is.na(dat))
-#sum(is.na(dat))
+any(is.na(dat))
+sum(is.na(dat))
 ## removing NA rows
 dat <- na.omit(dat)
 
@@ -267,9 +253,9 @@ dat$cost.bike <- dat$travel_dist + 3
 library(mlogit)
 dat.logit <- mlogit.data(dat, shape="wide", 
                       choice="transit_mode", 
-                      varying=c(18:23)) 
+                      varying=c(17:22)) 
 summary(dat.logit)
-#the 18:23 are column numbers of the alternative specific variables we created
+#the 17:22 are column numbers of the alternative specific variables we created
 
 
 #Task 2: Exploratory Data Analysis ####
@@ -297,8 +283,7 @@ library(ggplot2)
 library(dplyr)
 
 cat.dat <- dat %>%
-  select(county, area_type, hh_income, transit_mode, education, driver_license, work_mode, parking_subsidy, 
-         transit_subsidy)
+  select(county, area_type, hh_income, transit_mode, education, driver_license, parking_subsidy, transit_subsidy)
 
 cat.dat <- cat.dat %>%
   group_by(transit_mode)
@@ -318,17 +303,7 @@ ggplot(cat.dat, aes(x = hh_income, fill = transit_mode)) +
   theme_minimal()
 
 ### transit mode by area type ####
-#re-categorize area type 
-cat.dat <- cat.dat %>%
-  mutate(a_type = case_when(
-    area_type == 'Urban' ~ "Urban",
-    area_type == 'CBD' ~ "Urban",
-    area_type == 'CBD Fringe' ~ "Urban",
-    area_type == 'Suburban' ~ "Suburban",
-    area_type == 'Open Rural' ~ "Rural",
-    area_type == 'Rural' ~ "Rural"))
-
-ggplot(cat.dat, aes(x = a_type, fill = transit_mode)) +
+ggplot(cat.dat, aes(x = area_type, fill = transit_mode)) +
   geom_bar(position = position_dodge()) +
   labs(title = "Count of People in Area Type by Transit Mode",
        x = "Area Type",
@@ -367,46 +342,18 @@ ggplot(cat.dat, aes(x = parking_subsidy, fill = transit_mode)) +
 #(dependent variable ~ alt. specific with generic coef. | individual specific | alt. specific with alt. specific coef.)
 names(dat)
 
+# write theory
 #test model includes all variables that we selected prior to data cleaning 
 mod.test <-  mlogit (transit_mode ~ cost + time | household_size + total_veh + toll_account + county +
-                       area_type + hh_income + education + driver_license + work_mode + parking_subsidy +
+                       area_type + hh_income + education + driver_license  + parking_subsidy +
                        transit_subsidy
                      , data = dat.logit, reflevel = "car")
 summary(mod.test)
 
-
-# retest
-mod.1 <-  mlogit (transit_mode ~ cost + time | household_size + total_veh + county + area_type +
-                    hh_income + driver_license + work_mode + parking_subsidy
+mod.final <-  mlogit (transit_mode ~ cost + time | household_size + total_veh + county + area_type
+                  + hh_income + driver_license + parking_subsidy
                      , data = dat.logit, reflevel = "car")
-summary(mod.1)
 
-#predicting
-mode.prob <- data.frame(fitted(mod.1, outcome = FALSE))
-dat.1 <- cbind.data.frame(dat, mode.prob)
-
-dat.1$pred_mode <- 0
-
-#applying predicted transit mode for the whole data set based on probabilities
-for (i in 1:length(dat.1$HH_ID)) {
-  if (dat.1$car[i] > dat.1$bike[i] & dat.1$car[i] > dat.1$transit[i]) {
-    dat.1$pred_mode[i] = "car"
-  } else if (dat.1$transit[i] > dat.1$car[i] & dat.1$transit[i] > dat.1$bike[i]) {
-    dat.1$pred_mode[i] = "transit"
-  } else if (dat.1$bike[i] > dat.1$car[i] & dat.1$bike[i] > dat.1$transit[i]) {
-    dat.1$pred_mode[i] = "bike"
-  }
-}
-
-AIC(mod.test)
-AIC(mod.1)
-lrtest(mod.test, mod.1)
-
-#####
-
-# backward selection for final model
-mod.final <- mlogit (transit_mode ~ cost + time | household_size +  hh_income + work_mode + total_veh
-                    , data = dat.logit, reflevel = "car")
 summary(mod.final)
 
 #predicting
@@ -416,7 +363,7 @@ dat <- cbind.data.frame(dat, mode.prob)
 dat$pred_mode <- 0
 
 #use actual share in observed as thresholds
-#table(dat$mode_agg)/length(dat$mode_agg)
+table(dat$transit_mode)/length(dat$transit_mode)
 
 #applying predicted transit mode for the whole data set based on probabilities
 for (i in 1:length(dat$HH_ID)) {
@@ -430,7 +377,6 @@ for (i in 1:length(dat$HH_ID)) {
 }
 
 #calculate model fit statistics####
-
 AIC(mod.test)
 AIC(mod.final)
 lrtest(mod.test, mod.final)
@@ -440,7 +386,6 @@ table(mod.final$pred_mode)
 
 #count R squared - percent of observations correctly predicted by the model
 library(nnet)
-summary(mod.final)
 
 #CONFUSION MATRIX?
 prop.table(table(predicted = stem.samp$pred_field, 
