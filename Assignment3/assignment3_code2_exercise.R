@@ -203,6 +203,7 @@ dat <- dat %>%
 #preserve sample size
 any(is.na(dat))
 sum(is.na(dat))
+
 ## removing NA rows
 dat <- na.omit(dat)
 
@@ -358,23 +359,25 @@ summary(mod.final)
 
 #predicting
 mode.prob <- data.frame(fitted(mod.final, outcome = FALSE))
-dat <- cbind.data.frame(dat, mode.prob)
+dat.pred <- cbind.data.frame(dat, mode.prob)
 
-dat$pred_mode <- 0
+dat.pred$pred_mode <- 0
+
+summary(dat.pred)
 
 #use actual share in observed as thresholds
-table(dat$transit_mode)/length(dat$transit_mode)
+table(dat.pred$transit_mode)/length(dat.pred$transit_mode)
 
-#applying predicted transit mode for the whole data set based on probabilities
-for (i in 1:length(dat$HH_ID)) {
-  if (dat$car[i] > dat$bike[i] & dat$car[i] > dat$transit[i]) {
-    dat$pred_mode[i] = "car"
-  } else if (dat$transit[i] > dat$car[i] & dat$transit[i] > dat$bike[i]) {
-    dat$pred_mode[i] = "transit"
-  } else if (dat$bike[i] > dat$car[i] & dat$bike[i] > dat$transit[i]) {
-    dat$pred_mode[i] = "bike"
+for (i in 1:nrow(dat.pred)) {
+  if (dat.pred$car[i] > 0.65530799) {
+    dat.pred$pred_mode[i] = "car"
+  } else if (dat.pred$transit[i] > 0.27653997) {
+    dat.pred$pred_mode[i] = "transit"
+  } else if (dat.pred$bike[i] > 0.06815203) {
+    dat.pred$pred_mode[i] = "bike"
   }
 }
+
 
 #calculate model fit statistics####
 AIC(mod.test)
@@ -388,8 +391,8 @@ table(mod.final$pred_mode)
 library(nnet)
 
 #CONFUSION MATRIX?
-prop.table(table(predicted = stem.samp$pred_field, 
-                 observed = stem.samp$job.cat), margin = 2)
+prop.table(table(predicted = dat.pred$pred_mode, 
+                 observed = dat.pred$transit_mode), margin = 2)
 
 
 
