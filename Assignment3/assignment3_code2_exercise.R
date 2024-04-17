@@ -283,19 +283,28 @@ sumtable(cont.dat)
 library(ggplot2)
 library(dplyr)
 
-cat.dat <- dat %>%
-  select(county, area_type, hh_income, transit_mode, education, driver_license, parking_subsidy, transit_subsidy)
+### Final stat variables for the model ####
+#### Continuous variables ####
+final.var.cont <- dat %>%
+  select(household_size, total_veh, travel_time, travel_dist, time.car, time.transit, time.bike, cost.car,
+         cost.transit, cost.transit)
 
-cat.dat <- cat.dat %>%
-  group_by(transit_mode)
+sumtable(final.var.cont)
+
+#### Categorical variables ####
+# remove county (even though it is used in the model)
+final.var.cat <- dat %>%
+  select(area_type, hh_income, transit_mode, driver_license, parking_subsidy)
+
+sumtable(final.var.cat)
 
 # transit color palette
 t.color <- c("#E1BEE7", "#AB47BC", "#6A1B9A")
 
-### transit mode by income group ####
+### Transit mode by income group ####
 ggplot(cat.dat, aes(x = hh_income, fill = transit_mode)) +
   geom_bar(position = "dodge") +
-  labs(title = "Count of People in Each Income Group by Transit Mode",
+  labs(title = "Count of People in Each\nIncome Group by Transit Mode",
        x = "Income Group",
        y = "Count",
        fill = "Transit Mode",
@@ -303,7 +312,7 @@ ggplot(cat.dat, aes(x = hh_income, fill = transit_mode)) +
   scale_fill_manual(values = t.color) +
   theme_minimal()
 
-### transit mode by area type ####
+### Transit mode by area type ####
 ggplot(cat.dat, aes(x = area_type, fill = transit_mode)) +
   geom_bar(position = position_dodge()) +
   labs(title = "Count of People in Area Type by Transit Mode",
@@ -314,10 +323,11 @@ ggplot(cat.dat, aes(x = area_type, fill = transit_mode)) +
   scale_fill_manual(values = t.color) +
   theme_minimal()
 
-#transit mode by county
+### Transit mode by county####
 ggplot(cat.dat, aes(x = county, fill = transit_mode)) +
   geom_bar(position = "dodge") +
-  labs(title = "Count of People's Education Attainment Type \n\ by Transit Mode",
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+  labs(title = "Count of People's Education Attainment \nType by Transit Mode",
        x = "County",
        y = "Count",
        fill = "Transit Mode",
@@ -325,7 +335,7 @@ ggplot(cat.dat, aes(x = county, fill = transit_mode)) +
   scale_fill_manual(values = t.color) +
   theme_minimal()
 
-### transit mode by parking subsidy ####
+### Transit mode by parking subsidy ####
 ggplot(cat.dat, aes(x = parking_subsidy, fill = transit_mode)) +
   geom_bar(position = position_dodge()) +
   labs(title = "Count of Transit Mode by Levels of Parking Costs",
@@ -344,6 +354,13 @@ ggplot(cat.dat, aes(x = parking_subsidy, fill = transit_mode)) +
 names(dat)
 
 # write theory
+
+# setting reference levels for relevant variables: hh_income 
+# make hh_income a factor variable to re-level
+dat.logit$hh_income <- factor(dat.logit$hh_income)
+dat.logit$hh_income <- relevel(dat.logit$hh_income, ref = "low_income")
+
+## Test Model####
 #test model includes all variables that we selected prior to data cleaning 
 mod.test <-  mlogit (transit_mode ~ cost + time | household_size + total_veh + toll_account + county +
                        area_type + hh_income + education + driver_license  + parking_subsidy +
@@ -351,21 +368,23 @@ mod.test <-  mlogit (transit_mode ~ cost + time | household_size + total_veh + t
                      , data = dat.logit, reflevel = "car")
 summary(mod.test)
 
+## Final Model####
+# We removed insignificant variables until no variables could be removed
 mod.final <-  mlogit (transit_mode ~ cost + time | household_size + total_veh + county + area_type
                   + hh_income + driver_license + parking_subsidy
                      , data = dat.logit, reflevel = "car")
 
 summary(mod.final)
 
-#predicting
+## Creating predictions####
+#creating a new data frame to include predictions
 mode.prob <- data.frame(fitted(mod.final, outcome = FALSE))
 dat.pred <- cbind.data.frame(dat, mode.prob)
-
 dat.pred$pred_mode <- 0
 
 summary(dat.pred)
 
-#use actual share in observed as thresholds
+#populating predictions using actual share in observed as thresholds
 table(dat.pred$transit_mode)/length(dat.pred$transit_mode)
 
 for (i in 1:nrow(dat.pred)) {
@@ -378,34 +397,12 @@ for (i in 1:nrow(dat.pred)) {
   }
 }
 
-
-#calculate model fit statistics####
+### Calculate model fit statistics####
 AIC(mod.test)
 AIC(mod.final)
 lrtest(mod.test, mod.final)
 
-# CHECK from here on####
-table(mod.final$pred_mode)
-
-#count R squared - percent of observations correctly predicted by the model
-library(nnet)
-
-#CONFUSION MATRIX?
-prop.table(table(predicted = dat.pred$pred_mode, 
-                 observed = dat.pred$transit_mode), margin = 2)
-
-
-
-table(observed = mod.final$transit_mode$job.cat, predicted = predict(object = mod.2))
-
-prop.table(table(observed = mod.2$model$job.cat, 
-                 predicted = predict(object = mod.2)), margin = 1)
-
-
-#misclassification error
-#correct rate for car
-#correct rate for transit
-#correct rate for bike
+# Task 4: Policy Interventions####
 
 #how changing variables affect mode choice####
 #a few options to think about
@@ -426,12 +423,20 @@ fitted(mod.2, outcome = FALSE)
 apply(fitted(mod.2, outcome=FALSE), 2, mean)
 apply(fitted(mod.1, outcome=FALSE), 2, mean)
 
-#this is what the function is doing
-len <- length(dat.logit$hh_id)/3
-mean(fitted(mod.2, outcome = FALSE)[1:]) #plug in the value of len [1:len]
-mean(fitted(mod.2, outcome = FALSE)[:]) #plug in the value of len to calculate [(len + 1):len*2]
-mean(fitted(mod.2, outcome = FALSE)[:]) #plug in the value of len to calculate [(len*2+1):len*3]
 
-mean(fitted(mod.1, outcome = FALSE)[1:]) #same as above
-mean(fitted(mod.1, outcome = FALSE)[:])
-mean(fitted(mod.1, outcome = FALSE)[:])
+# Task 5: Model Performance####
+table(mod.final$pred_mode)
+
+#count R squared - percent of observations correctly predicted by the model
+library(nnet)
+
+# CONFUSION MATRIX ####
+prop.table(table(predicted = dat.pred$pred_mode, 
+                 observed = dat.pred$transit_mode), margin = 2)
+
+#misclassification error
+#correct rate for car
+#correct rate for transit
+#correct rate for bike
+
+
