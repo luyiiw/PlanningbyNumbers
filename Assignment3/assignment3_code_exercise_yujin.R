@@ -54,13 +54,13 @@ dat01 <- dat.voting %>% filter(VCF0004 == 2012 | VCF0004 == 2016) %>%
                     
 
 dat02 <- dat.voting %>% filter(VCF0004 == 2012 | VCF0004 == 2016) %>%
-  rename(candidate = VCF0704a, income=VCF0114, year = VCF0004, religion=VCF0128, education=VCF0140a, party=VCF0302, race = VCF0105a, age=VCF0101, gender=VCF0104) %>%
-  select(year, candidate, income, year, religion, education, party, race, age, gender) %>%
-  filter(race != 9, candidate != 0, income != 0, religion != 0, !education %in% c(8, 9), !party %in% c(3,4,8, 9), !age <=17, gender !=3) %>%
+  rename(candidate = VCF0704a, income=VCF0114, year = VCF0004, religion=VCF0128, education=VCF0140a, party=VCF0302, race = VCF0105a, age=VCF0101, gender=VCF0104, south=VCF0113) %>%
+  select(year, candidate, income, year, religion, education, party, race, age, gender, south) %>%
+  filter(race != 9, candidate != 0, income != 0, religion != 0, !education %in% c(8, 9), !party %in% c(3,4,8, 9), !age <=17, !gender %in% c(0,3)) %>%
   mutate(
     race_cat = as.factor(recode(race,
-                                `1` = "white",
-                                `2` = "black",
+                                `1` = "White",
+                                `2` = "Black",
                                 `3` = "other",
                                 `4` = "other",
                                 `5` = "Hispanic",
@@ -94,372 +94,228 @@ dat02 <- dat.voting %>% filter(VCF0004 == 2012 | VCF0004 == 2016) %>%
     gender_cat=as.factor(recode(gender,
                                 `1`="Male",
                                 `2`="Female")),
+    south_cat=as.factor(recode(south,
+                               `1`="South",
+                               `2`="Non-South")),
    age_cat=case_when(
     age >= 17 & age <= 24 ~ "17-24",
      age >= 25 & age <= 34 ~ "25-34",
      age >= 35 & age <= 44 ~ "35-44",
      age >= 45 & age <= 59 ~ "45-59",
      age >= 60            ~ "60+" ))%>%
-  select(-candidate,-income,-religion,-education,-party,-race,-gender,-age)
+  select(-candidate,-income,-religion,-education,-party,-race,-gender,-age,-south)
 
 
 
-
-
-##Task1
-##Plot
 library(dplyr)
 library(tidyr)
-library(ggplot)
+library(ggplot2)
 
-plot_data <- dat01 %>%
-  count(year, race_cat, candidate_cat, income_cat, religion_cat, education_cat, party_cat)  # Using count to aggregate data correctly
-
-# Create the plot
-ggplot(plot_data, aes(x = as.factor(year), y = n, fill = as.factor(race_cat))) +
-  geom_bar(stat = "identity", position = "dodge") +
-  scale_fill_brewer(palette = "Dark2") +  # Using a more appropriate palette
-  labs(title = "Distribution of Race Categories by Year",
-       x = "Year",
+###Year by Race###
+ggplot(dat02, aes(x = year, fill = race_cat)) +
+  geom_bar(position = "dodge", stat="count") +
+  labs(title = "Count of People in Each Race Group by Year",
+       x = "Race Group",
        y = "Count",
-       fill = "Race Category") +
+       fill = "Race Group",
+       caption = "Figure 1.1")+
+  scale_x_continuous(breaks = c(2012, 2016), labels = c("2012", "2016")) + # Set x-axis breaks
   theme_minimal()
 
-library(gridExtra)  # For arranging multiple plots
 
-# List of variables to plot
-variables_to_plot <- c("race_cat", "candidate_cat", "income_cat", "religion_cat", "party_cat", "education_cat")
-
-# Function to prepare data and plot
-prepare_and_plot <- function(data, var_name) {
-  # Calculate percentages
-  percentage_data <- data %>%
-    group_by(year, !!sym(var_name)) %>%
-    summarise(count = n(), .groups = 'drop') %>%
-    group_by(year) %>% 
-    mutate(total = sum(count),  # Total counts per year
-           percentage = (count / total) * 100)  # Calculate percentage
-  
-  # Generate plot
-  p <- ggplot(percentage_data, aes(x = as.factor(year), y = percentage, fill = !!sym(var_name))) +
-    geom_bar(stat = "identity", position = position_dodge()) +
-    scale_fill_brewer(palette = "Set3") +
-    labs(title = paste("Percentage Distribution of", var_name, "by Year"),
-         x = "Year",
-         y = "Percentage",
-         fill = var_name) +
-    theme_minimal() +
-    scale_y_continuous(labels = scales::percent_format())
-  
-  return(p)
-}
-
-# Apply function to each variable and store plots
-plots <- lapply(variables_to_plot, function(v) prepare_and_plot(dat01, v))
-grid.arrange(grobs = plots, ncol = 2)
-print(plots[[1]])
-scale_y_continuous(labels = scales::percent_format(), limits = c(0, 100))
-print(head(percentage_data))
-# Arrange all plots in one grid
-grid.arrange(grobs = plots, ncol = 2)
-
-##Model Building
-
-dat2012 <- dat01 %>% filter (year==2012)
-dat2016 <- dat01 %>% filter (year==2016)
-
-dat201201<-dat02 %>% filter (year==2012)
-dat201601 <- dat02 %>% filter (year==2016)
+###Year by Gender###
+ggplot(dat02, aes(x = year, fill = gender_cat)) +
+  geom_bar(position = "dodge", stat="count") +
+  labs(title = "Count of People in Each Gender Group by Year",
+       x = "Gender Group",
+       y = "Count",
+       fill = "Gender Group",
+       caption = "Figure 1.2")+
+  scale_x_continuous(breaks = c(2012, 2016), labels = c("2012", "2016")) + # Set x-axis breaks
+  theme_minimal()
 
 
-mod.1 <- glm(candidate_cat ~ age + race_cat + gender_cat+
-                income_cat + religion_cat + 
+###Year by Age###
+ggplot(dat02, aes(x = year, fill = age_cat)) +
+  geom_bar(position = "dodge", stat="count") +
+  labs(title = "Count of People in Each Age Group by Year",
+       x = "Age Group",
+       y = "Count",
+       fill = "Age Group",
+       caption = "Figure 1.3")+
+  scale_x_continuous(breaks = c(2012, 2016), labels = c("2012", "2016")) + # Set x-axis breaks
+  theme_minimal()
+
+###Year by Household Income###
+ggplot(dat02, aes(x = year, fill = income_cat)) +
+  geom_bar(position = "dodge", stat="count") +
+  labs(title = "Count of People in Each Household income Group by Year",
+       x = "Household Income Group",
+       y = "Count",
+       fill = "Household Income Group",
+       caption = "Figure 1.4")+
+  scale_x_continuous(breaks = c(2012, 2016), labels = c("2012", "2016")) + # Set x-axis breaks
+  theme_minimal()
+
+###Year by Religion###
+ggplot(dat02, aes(x = year, fill = religion_cat)) +
+  geom_bar(position = "dodge", stat="count") +
+  labs(title = "Count of People in Each Religion Group by Year",
+       x = "Religion Group",
+       y = "Count",
+       fill = "Religion Group",
+       caption = "Figure 1.5")+
+  scale_x_continuous(breaks = c(2012, 2016), labels = c("2012", "2016")) + # Set x-axis breaks
+  theme_minimal()
+
+###Year by Education###
+ggplot(dat02, aes(x = year, fill = education_cat)) +
+  geom_bar(position = "dodge", stat="count") +
+  labs(title = "Count of People in Educational attainment  by Year",
+       x = "Educational Attainment",
+       y = "Count",
+       fill = "Educational Attainment",
+       caption = "Figure 1.6")+
+  scale_x_continuous(breaks = c(2012, 2016), labels = c("2012", "2016")) + # Set x-axis breaks
+  theme_minimal()
+
+###Year by Party###
+ggplot(dat02, aes(x = year, fill = party_cat)) +
+  geom_bar(position = "dodge", stat="count") +
+  labs(title = "Count of People in Party Affiliation by Year",
+       x = "Party Affiliation",
+       y = "Count",
+       fill = "Party Affiliation",
+       caption = "Figure 1.7")+
+  scale_x_continuous(breaks = c(2012, 2016), labels = c("2012", "2016")) + # Set x-axis breaks
+  theme_minimal()
+
+## Summary Statistics Table####
+library(vtable)
+summarydat<-dat02%>%select(race_cat,candidate_cat,income_cat,religion_cat,education_cat,party_cat,gender_cat,age_cat)
+sumtable(summarydat)
+
+## Task2
+## binomial model building
+##changing reference category
+dat02$candidate_cat<-relevel(dat02$candidate_cat,ref="Democrat")
+dat02$race_cat<-relevel(dat02$race_cat,ref="White")
+dat02$income_cat<-relevel(dat02$income_cat,ref="lower income")
+dat02$religion_cat<-relevel(dat02$religion_cat,ref="Protestant")
+dat02$gender_cat<-relevel(dat02$gender_cat,ref="Female")
+dat02$education_cat<-relevel(dat02$education_cat,ref="Below HS")
+dat02$south_cat<-relevel(dat02$south_cat,ref="South")
+
+dat2012<-dat02 %>% filter (year==2012)
+dat2016 <- dat02 %>% filter (year==2016)
+
+
+levels(dat02$race_cat)
+## 2012 model####
+
+mod.1 <- glm(candidate_cat ~ age_cat + race_cat + gender_cat+
+                income_cat + religion_cat + south_cat +
                education_cat + party_cat, 
              data = dat2012, 
              na.action = na.exclude, 
              family = binomial("logit"))
+
 summary(mod.1)
 
 
-
-mod.11 <- glm(candidate_cat ~ age_cat + race_cat + gender_cat+
-               income_cat + religion_cat + 
-               education_cat + party_cat, 
-             data = dat201201, 
-             na.action = na.exclude, 
-             family = binomial("logit"))
-summary(mod.11)
-
-
-
-
-mod.2 <- glm(candidate_cat ~ age + race_cat + 
-               candidate_cat + income_cat + religion_cat, 
-             data = dat2012, 
-             na.action = na.exclude, 
-             family = binomial("logit"))
-summary(mod.2)
-
-mod.1 <- glm(candidate_cat ~ age + race_cat + 
-               income_cat + religion_cat + 
+mod.2 <- glm(candidate_cat ~ age_cat + race_cat +
+               income_cat + religion_cat + south_cat +
                education_cat + party_cat, 
              data = dat2012, 
              na.action = na.exclude, 
              family = binomial("logit"))
-summary(mod.1)
 
-mod.2 <- glm(candidate_cat ~ age + race_cat + 
-               candidate_cat + income_cat + religion_cat, 
-             data = dat2012, 
-             na.action = na.exclude, 
-             family = binomial("logit"))
 summary(mod.2)
 
 
+AIC(mod.1)
+AIC(mod.2)
+lrtest(mod.1, mod.2)
+logLik(mod.2)
 
-mod.3 <- glm(candidate_cat ~ age + race_cat + 
-               income_cat + religion_cat + 
+## 2016 Model####
+
+mod.3 <- glm(candidate_cat ~ age_cat + race_cat + gender_cat+
+               income_cat + religion_cat + south_cat +
                education_cat + party_cat, 
              data = dat2016, 
              na.action = na.exclude, 
              family = binomial("logit"))
+
 summary(mod.3)
 
-mod.4 <- glm(candidate_cat ~ age + race_cat + 
-                                    income_cat + religion_cat + 
-                                    education_cat + party_cat, 
-                                  data = dat2016, 
-                                  na.action = na.exclude, 
-                                  family = binomial("logit"))
+
+mod.4 <- glm(candidate_cat ~ age_cat + race_cat +
+                religion_cat + south_cat +
+               education_cat + party_cat, 
+             data = dat2016, 
+             na.action = na.exclude, 
+             family = binomial("logit"))
+
 summary(mod.4)
 
 
-mod.5<- glm(candidate_cat ~ age + race_cat + 
-                      income_cat + religion_cat + 
-                      education_cat + party_cat, 
-                    data = dat2016, 
-                    na.action = na.exclude, 
-                    family = binomial("logit"))
-summary(mod.5)
+AIC(mod.3)
+AIC(mod.4)
+lrtest(mod.3, mod.4)
+logLik(mod.4)
 
-mod.2 <- glm(candidate_cat ~ age + race_cat + 
-               candidate_cat + income_cat + religion_cat, 
-             data = dat2012, 
-             na.action = na.exclude, 
-             family = binomial("logit"))
-summary(mod.2)
+##Task2####
+trip.data <- read.csv("trip_data.csv")
+person.data <- read.csv("person_data.csv")
+household.data <- read.csv("household_data.csv")
 
-
-
-
-
-
-
-summary(mod.1)
-logLik(mod.1)
-100*(exp(mod.1$coefficients) - 1)
-logLik(mod.1)*(-2)
-mcfadden_r2 <- 1 - (logLik(mod.1)/logLik(null_model))
-print(mcfadden_r2)
-
-null_model <- glm(candidate_cat ~ 1, data =  dat2012, family = binomial("logit"))
-
-
-logLik(mod.1)
-
-
-
-
-
-#HHTS####
-rm(list = ls())
-library(tidyverse)
-
-#set working directory 
-setwd("/Users/luyiiwong/Documents/Planning_by_numbers/Module3")
+trip.data<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\4_Trip_Public.csv")
+person.data<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\2_Person_Public.csv")
+Household_public<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\1_Household_Public.csv")
 
 #filtering, recategorizing, renaming, and selecting variables#### 
 #take trip dataset
-trip.dat <- read.csv("trip_data.csv")
-#yujin dataset
-trip.dat<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\4_Trip_Public.csv")
-person.dat<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\2_Person_Public.csv")
-household.dat<-read.csv("C:\\Users\\USER\\Desktop\\PlanningByNumbers\\Assignment03\\publicdb_release\\DVRPC HTS Database Files\\1_Household_Public.csv")
 #step 1. choose bike, auto, and transit trips that ended at work locations
-trip.dat <- trip.dat %>%
-  filter(MODE_AGG %in% c(2, 3, 5) & D_LOC_TYPE == 2)
-
-## MODE_AGG = 2,3,5
-## D_LOC_TYPE = 2 (WORK)
+trip.data <- trip.data %>%
+  filter(MODE_AGG == 2 | MODE_AGG == 3 | MODE_AGG == 5) %>%
+  filter(D_LOC_TYPE == 2)
 
 #step 2. recode modes to bike, car, and transit (please name the modes as such)
-trip.dat <- trip.dat %>%
-  mutate(tranist_mode = as.factor(
-    recode(MODE_AGG,
-           `2` = "bike",
-           `3` = "car",
-           `5` = "transit")))
+trip.data <- trip.data %>%
+  mutate(mode_type = recode(MODE_AGG,
+                            `2` = "Bike",
+                            `3` = "Car",
+                            `5` = "Transit"))
 
 #step 3. some people took multiple work trips. for each person, keep only the first work trip
-
-trip.dat <- trip.dat %>%
-  filter(TRIP_NUM == 1)
-
+trip.data <- trip.data %>%
+  group_by(PERSON_ID, TRIP_NUM)
 #step 4. select household id, person id, parking costs, travel time (model simulated), and travel distance (model simulated)
 
-trip.dat <- trip.dat %>%
-  select(HH_ID, PERSON_ID, Model_TravTime, Model_TravDist)
-
 #take person dataset
-person.dat <- read.csv("person_data.csv")
-
 #step 1. identify personal variables that might be associated with mode choice (be careful about the 988 value for race)
-person.dat <- person.dat %>%
-  select(HH_ID, PERSON_ID, EDUCA, LIC, WK_MODE, PARK_SUB, TRAN_SUB)
-
 #step 2. for each variable, remove meaningless values
-## removing NA rows
-person.dat <- na.omit(person.dat)
-
-## removing education refused or don't know rows
-person.dat <- person.dat[!(person.dat$EDUCA %in% "99"),]
-person.dat <- person.dat[!(person.dat$EDUCA %in% "98"),]
-
-## removing people with unknown license
-person.dat <- person.dat[!(person.dat$LIC %in% "99"),]
-person.dat <- person.dat[!(person.dat$LIC %in% "98"),]
-
-## removing odd data and refused answer for WORK_MODE
-person.dat <- person.dat[!(person.dat$WK_MODE %in% "0"),]
-person.dat <- person.dat[!(person.dat$WK_MODE %in% "9"),]
-
-## removing don't know and refused answer for PARK_SUB
-person.dat <- person.dat[!(person.dat$PARK_SUB %in% "8"),]
-person.dat <- person.dat[!(person.dat$PARK_SUB %in% "9"),]
-
-## removing don't know and refused answer for TRAN_SUB
-person.dat <- person.dat[!(person.dat$TRAN_SUB %in% "8"),]
-
 #step 3. recode values to more sensible categories
-
-person.dat <- person.dat %>%
-  mutate(education = as.factor(
-    recode(EDUCA,
-           `1` = "Below HS",
-           `2` = "HS Grad",
-           `3` = "Some College",
-           `4` = "Associate Degree",
-           `5` = "BS Degree",
-           `6` = "Graduate Degree",
-           `97` = "Other"))) %>%
-  mutate(driver_license = as.factor(
-    recode(LIC,
-           `1` = "Yes",
-           `2` = "No"))) %>%
-  mutate(transit_mode = as.factor(
-    recode(WK_MODE,
-           `1` = "Car",
-           `2` = "Carpool",
-           `3` = "Car and Transit",
-           `4` = "Tranist",
-           `5` = "Bicylce",
-           `6` = "Walking",
-           `7` = "Other",
-           `8` = "WFH"))) %>%
-  mutate(parking_subsidy = as.factor(
-    recode(PARK_SUB,
-           `1` = "Subsidized Parking",
-           `2` = "No Parking Subsidy",
-           `3` = "Free Parking"))) %>%
-  mutate(transit_subsidy = as.factor(
-    recode(TRAN_SUB,
-           `1` = "Subsidized Transit",
-           `2` = "No Transit Subsidy")))
-
 #step 4. select only the relevant variables
-person.dat <- person.dat %>%
-  select(HH_ID, PERSON_ID, education, driver_license, transit_mode, parking_subsidy, transit_subsidy)
 
 #take household dataset
-household.dat <- read_csv("household_data.csv")
-
 #step 1. identify household variables that might be associated with mode choice
-household.dat <- household.dat %>%
-  select(HH_ID, H_COUNTY, A_TYPE, HH_SIZE, TOT_VEH, TOLL_ACCNT, INCOME)
-
 #step 2. for each variable, remove meaningless values
-## removing NA rows
-household.dat <- na.omit(household.dat)
-
-## removing TOLL_ACCNT don't know rows
-household.dat <- household.dat[!(household.dat$TOLL_ACCNT %in% "98"),]
-
-## removing INCOME don't know or refused rows
-household.dat <- household.dat[!(household.dat$INCOME %in% "98"),]
-household.dat <- household.dat[!(household.dat$INCOME %in% "99"),]
-
 #step 3. recode values to more sensible categories
-household.dat <- household.dat %>%
-  mutate(county = as.factor(
-    recode(H_COUNTY,
-           `42017` = "Bucks",
-           `42029` = "Chester",
-           `42045` = "Delaware",
-           `42091` = "Montgomery",
-           `42101` = "Philadelphia",
-           `34005` = "Burlington",
-           `34007` = "Camden",
-           `34015` = "Gloucester",
-           `34021` = "Mercer"))) %>%
-  mutate(area_type = as.factor(
-    recode(A_TYPE,
-           `1` = "CBD",
-           `2` = "CBD Fringe",
-           `3` = "Urban",
-           `4` = "Surburban",
-           `5` = "Rural",
-           `6` = "Open Rural")))
-
-## renaming columns 
-household.dat <- household.dat %>%
-  rename(household_size = HH_SIZE) %>%
-  rename(total_veh = TOT_VEH) %>%
-  rename(toll_account = TOLL_ACCNT)
-
-## re categorizing income
-household.dat <- household.dat %>%
-  mutate(hh_income = case_when(
-    INCOME == '1' ~ 'low_income',
-    INCOME == '2' ~ 'low_income',
-    INCOME == '3' ~ 'low_income',
-    INCOME == '4' ~ 'low_income',
-    INCOME == '5' ~ 'middle_income',
-    INCOME == '6' ~ 'middle_income',
-    INCOME == '7' ~ 'middle_income',
-    INCOME >= '8' ~ 'high_income'))
-
 #step 4. select only the relevant variables
-household.dat <- household.dat %>%
-  select(-H_COUNTY, -A_TYPE, -INCOME)
 
 #joining trip dataset to person dataset
 #step 1. join trip, person, and household datasets
-dat <- merge(trip.dat, person.dat, by = "HH_ID", all.x = FALSE, all.y=FALSE, sort = FALSE) 
-dat <- merge(household.dat, dat, by = "HH_ID", all.x = FALSE, all.y=FALSE, sort = FALSE)
 #step 2. examine variables, remove outliers (let's keep only people who travel < 10 miles, < 120 minutes, and paid <$50 for parking)
-dat <- dat %>%
-  filter(Model_TravDist < 10,
-         Model_TravTime < 120)
 #step 3. remove NAs. if this step leaves you with a few observations (say, a few hundred), then inspect variables to see
 #if certain variable has lots of NAs and whether it would be reasonable to remove that variable altogether in order to
 #preserve sample size
-any(is.na(dat))
-sum(is.na(dat))
 
 #we will do the following in class####
 #calculating average speed for each mode
-ave.speed <- dat %>% group_by(transit_mode) %>%
-  summarise(ave_speed = mean(Nodel_Traveldist/(travel_time/60)))
+ave.speed <- dat %>% group_by(mode_cat) %>%
+  summarise(ave_speed = mean(travel_dist/(travel_time/60)))
 
 #calculating travel time for alternative modes
 #need to do it one mode at a time
@@ -467,6 +323,7 @@ dat.car <- dat %>% filter(mode_cat == "car")
 dat.transit <- dat %>% filter(mode_cat == "transit")
 dat.bike <- dat %>% filter(mode_cat == "bike")
 
+## calculating potential travel time for each alternative mode of transit
 dat.car$time.car <- dat.car$travel_time
 dat.car$time.transit <- 60*(dat.car$travel_dist/ave.speed$ave_speed[2]) + 10 #add 10 minutes for waiting and walking to station
 dat.car$time.bike <- 60*(dat.car$travel_dist/ave.speed$ave_speed[3])
@@ -496,15 +353,15 @@ dat$cost.transit <- dat$travel_dist * 0.5 + 2
 
 #add $3 for non-monetary cost and wear and tear
 #Logan et al. (2023) #https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10546027/
-dat$cost.bike <- dat$travel_dist + 3 ###for the model experiment (question mark for this adding 3)
+dat$cost.bike <- dat$travel_dist + 3 
 
 #shaping data into correct format
 library(mlogit)
 dat.logit <- mlogit.data(dat, shape="wide", 
-                      choice="mode_cat", 
-                      varying=c(22:27)) ##22:27 time.cost changes to time field
-#the 22:27 are column numbers of the alternative specific variables we created
-#your column numbers might not be the same as mine(it took a long time for summer!!)
+                         choice="mode_cat", 
+                         varying=c(22:27)) 
+#the 23:28 are column numbers of the alternative specific variables we created
+#your column numbers might not be the same as mine
 
 #notice the time and cost variables? we did not create them, 
 #but mlogit was able to figure it out based on the naming
@@ -516,11 +373,7 @@ dat.logit <- mlogit.data(dat, shape="wide",
 
 names(dat)
 #fit a simple one for now
-mod.1 <- mlogit (mode_cat ~ cost + time | income_cat, data = dat.logit, reflevel="car", method="nr")
-##if you think that time is also alt. specific with generic coef
-summary(mod.1)
-
-mod.1 <- mlogit (mode_cat ~ cost + income | income_cat, data = dat.logit)   
+mod.1 <- mlogit (mode_cat ~ cost + income | income_cat, data = dat.logit)
 summary(mod.1)
 
 #predicting
@@ -588,3 +441,7 @@ mean(fitted(mod.2, outcome = FALSE)[:]) #plug in the value of len to calculate [
 mean(fitted(mod.1, outcome = FALSE)[1:]) #same as above
 mean(fitted(mod.1, outcome = FALSE)[:])
 mean(fitted(mod.1, outcome = FALSE)[:])
+
+
+
+
