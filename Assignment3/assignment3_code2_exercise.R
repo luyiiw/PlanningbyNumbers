@@ -403,40 +403,57 @@ AIC(mod.final)
 lrtest(mod.test, mod.final)
 
 # Task 4: Policy Interventions####
-
-#how changing variables affect mode choice####
-#a few options to think about
-#what if we increase cost of driving by xx%? how would that affect predicted average probabilities?
-#what if we reduce travel time on transit by xx%? how would that affect predicted average probabilities?
-#what if we increase the income of those who are currently at the bottom of the income brackets by xx%?
-
-#increasing driving cost by 50%
+# Intervention 1: Implementing a road tax that would increase driving cost by 50%
 dat.1 <- dat
 dat.1$cost.car <- dat.1$cost.car * 1.5
 dat.1.logit <- mlogit.data(dat.1, shape="wide", 
-                           choice="mode_cat", varying=c(23:28))  
-mod.2 <- mlogit (mode_cat ~ cost + time | income_cat, data = dat.1.logit)
+                           choice="transit_mode", varying=c(17:22))  
 
 #average predicted probability for using each mode before and after intervention
-fitted(mod.2, outcome = FALSE)
+apply(predict(mod.final, type = "response", newdata = dat.logit), 2, mean)
+apply(predict(mod.final, type = "response", newdata = dat.1.logit), 2, mean)
 
-apply(fitted(mod.2, outcome=FALSE), 2, mean)
-apply(fitted(mod.1, outcome=FALSE), 2, mean)
+
+# Intervention 2: Decreasing cost of public transit by 40%
+dat.2 <- dat
+
+dat.2$cost.transit <- dat.1$cost.transit * 0.6
+dat.2.logit <- mlogit.data(dat.2, shape="wide", 
+                           choice="transit_mode", varying=c(17:22))  
+apply(predict(mod.final, type = "response", newdata = dat.logit), 2, mean)
+apply(predict(mod.final, type = "response", newdata = dat.2.logit), 2, mean)
+
+#Intervention 3: Increasing driving costs and reducing public transit costs 
+dat.3 <- dat
+dat.3$cost.car <- dat.3$cost.car * 1.5
+dat.3$cost.transit <- dat.3$cost.transit * 0.6
+dat.3.logit <- mlogit.data(dat.3, shape="wide", 
+                           choice="transit_mode", varying=c(17:22))  
+apply(predict(mod.final, type = "response", newdata = dat.logit), 2, mean)
+apply(predict(mod.final, type = "response", newdata = dat.3.logit), 2, mean)
+
+#unsuccessful#
+#dat.2$parking_subsidy <- recode_factor(dat.2$parking_subsidy,
+#                                       `Free Parking` = "No Parking Subsidy",
+#                                       `Subsidized Parking` = "Subsidized Parking",
+#                                       `No Parking Subsidy` = "No Parking Subsidy")
+#levels(dat.2$parking_subsidy)
 
 
 # Task 5: Model Performance####
-table(mod.final$pred_mode)
-
 #count R squared - percent of observations correctly predicted by the model
 library(nnet)
 
-# CONFUSION MATRIX ####
+table(predicted = dat.pred$pred_mode, 
+      observed = dat.pred$transit_mode)
+
+## Confusion Matrix ####
 prop.table(table(predicted = dat.pred$pred_mode, 
                  observed = dat.pred$transit_mode), margin = 2)
 
-#misclassification error
-#correct rate for car
-#correct rate for transit
-#correct rate for bike
+#misclassification error: 18.6%
+#correct rate for car: 88.8%
+#correct rate for transit: 86.7%
+#correct rate for bike: 1.92%
 
 
