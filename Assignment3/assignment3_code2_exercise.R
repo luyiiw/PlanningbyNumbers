@@ -272,22 +272,10 @@ dat$hh_income <- as.factor(dat$hh_income)
 library(vtable)
 sumtable(dat)
 # should create a table with the variables that we use for the final model 
-
-cont.dat <- dat %>%
-  select(household_size, total_veh, toll_account, travel_time, travel_dist, time.car, time.transit, time.bike, cost.car,
-         cost.transit, cost.transit)
-
-sumtable(cont.dat)
-
-## Charts for Categorical Variables####
-library(ggplot2)
-library(dplyr)
-
-### Final stat variables for the model ####
 #### Continuous variables ####
 final.var.cont <- dat %>%
   select(household_size, total_veh, travel_time, travel_dist, time.car, time.transit, time.bike, cost.car,
-         cost.transit, cost.transit)
+         cost.transit, cost.bike)
 
 sumtable(final.var.cont)
 
@@ -298,6 +286,11 @@ final.var.cat <- dat %>%
 
 sumtable(final.var.cat)
 
+## Charts for Categorical Variables####
+library(ggplot2)
+library(dplyr)
+
+### Final stat variables for the model ####
 # transit color palette
 t.color <- c("#E1BEE7", "#AB47BC", "#6A1B9A")
 
