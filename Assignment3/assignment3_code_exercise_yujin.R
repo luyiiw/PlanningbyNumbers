@@ -5,10 +5,10 @@ library(haven)
 library(arm)
 library(tidyverse)
 
-#VOTING####
+#Question01####
+##Data loading
 load("cpln505_assignment3_voting_data_abb.rda")
 
-#Here is some data cleaning code to get you started
 dat01 <- dat.voting %>% filter(VCF0004 == 2012 | VCF0004 == 2016) %>%
   rename(candidate = VCF0704a, income=VCF0114, year = VCF0004, religion=VCF0128, education=VCF0140a, party=VCF0302, race = VCF0105a, age=VCF0101, gender=VCF0104) %>%
   select(year, candidate, income, year, religion, education, party, race, age, gender) %>%
@@ -52,7 +52,7 @@ dat01 <- dat.voting %>% filter(VCF0004 == 2012 | VCF0004 == 2016) %>%
                                 `2`="Female")))%>%
   select(-candidate,-income,-religion,-education,-party,-race,-gender)
                     
-
+##recategorizing
 dat02 <- dat.voting %>% filter(VCF0004 == 2012 | VCF0004 == 2016) %>%
   rename(candidate = VCF0704a, income=VCF0114, year = VCF0004, religion=VCF0128, education=VCF0140a, party=VCF0302, race = VCF0105a, age=VCF0101, gender=VCF0104, south=VCF0113) %>%
   select(year, candidate, income, year, religion, education, party, race, age, gender, south) %>%
@@ -98,7 +98,7 @@ dat02 <- dat.voting %>% filter(VCF0004 == 2012 | VCF0004 == 2016) %>%
                                `1`="South",
                                `2`="Non-South")),
    age_cat=case_when(
-    age >= 17 & age <= 24 ~ "17-24",
+    age >= 18 & age <= 24 ~ "18-24",
      age >= 25 & age <= 34 ~ "25-34",
      age >= 35 & age <= 44 ~ "35-44",
      age >= 45 & age <= 59 ~ "45-59",
@@ -192,8 +192,14 @@ ggplot(dat02, aes(x = year, fill = party_cat)) +
 
 ## Summary Statistics Table####
 library(vtable)
-summarydat<-dat02%>%select(race_cat,candidate_cat,income_cat,religion_cat,education_cat,party_cat,gender_cat,age_cat)
+summarydat01<-dat2012%>%select(race_cat,candidate_cat,income_cat,religion_cat,education_cat,party_cat,gender_cat,age_cat)
+sumtable(summarydat01)
+summarydat02<-dat2016%>%select(race_cat,candidate_cat,income_cat,religion_cat,education_cat,party_cat,gender_cat,age_cat)
+sumtable(summarydat02)
 sumtable(summarydat)
+
+
+
 
 ## Task2
 ## binomial model building
@@ -232,10 +238,11 @@ mod.2 <- glm(candidate_cat ~ age_cat + race_cat +
 
 summary(mod.2)
 
-
+library(lmtest)
 AIC(mod.1)
 AIC(mod.2)
 lrtest(mod.1, mod.2)
+logLik(mod.1)
 logLik(mod.2)
 
 ## 2016 Model####
@@ -263,6 +270,7 @@ summary(mod.4)
 AIC(mod.3)
 AIC(mod.4)
 lrtest(mod.3, mod.4)
+logLik(mod.3)
 logLik(mod.4)
 
 ##Task2####
