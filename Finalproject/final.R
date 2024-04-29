@@ -165,4 +165,21 @@ ggplot() +
           aes(fill = perc_vulnerable)) +
   scale_fill_viridis(option = "A") +
   labs(title = "Vulnerability Share by Census Tracts") +
-  theme_bw()
+  theme_minimal()
+
+#Population Density
+## consider plotting by category?
+ggplot() +
+  geom_sf(data = comb_2021, 
+          aes(fill = pop_dens)) +
+  scale_fill_viridis(option = "A") +
+  labs(title = "Vulnerability Share by Census Tracts") +
+  theme_minimal()
+
+#Tree Canopy
+ggplot() +
+  geom_sf(data = comb_2021, 
+          aes(fill = sum_treecanopy)) +
+  scale_fill_viridis(option = "A") +
+  labs(title = "Tree Canopy by Census Tracts") +
+  theme_minimal()
