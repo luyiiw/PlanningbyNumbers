@@ -1,5 +1,8 @@
 library(tidycensus)
 library(tidyverse)
+library(viridis)
+library(ggplot2)
+library(sf)
 
 #setup 
 setwd("/Users/luyiiwong/Documents/GitHub/PlanningbyNumbers/Finalproject")
@@ -147,3 +150,19 @@ mod.1 <- lm(temp ~ median_hh_income + renter_share + perc_vulnerable + sum_treec
 summary(mod.1)
 
 
+## Exploratory Analysis - Independent variables
+# Median Household Income 
+ggplot() +
+  geom_sf(data = comb_2021, 
+          aes(fill = median_hh_income)) +
+  scale_fill_viridis(option = "A") +
+  labs(title = "Median Household Income by Census Tracts") +
+  theme_bw()
+
+#Percentage Vulnerable
+ggplot() +
+  geom_sf(data = comb_2021, 
+          aes(fill = perc_vulnerable)) +
+  scale_fill_viridis(option = "A") +
+  labs(title = "Vulnerability Share by Census Tracts") +
+  theme_bw()
