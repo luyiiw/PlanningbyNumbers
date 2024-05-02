@@ -7,6 +7,53 @@ library(sf)
 #setup 
 setwd("/Users/luyiiwong/Documents/GitHub/PlanningbyNumbers/Finalproject")
 
+# load themes
+plotTheme <- theme(
+  plot.title =element_text(size=12),
+  plot.subtitle = element_text(size=8),
+  plot.caption = element_text(size = 6),
+  axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
+  axis.text.y = element_text(size = 8),
+  axis.title.y = element_text(size = 8),
+  axis.title.x = element_text(size = 8),
+  # Set the entire chart region to blank
+  panel.background=element_blank(),
+  plot.background=element_blank(),
+  #panel.border=element_rect(colour="#F0F0F0"),
+  # Format the grid
+  panel.grid.major=element_line(colour="#D0D0D0",size=.2),
+  axis.ticks=element_blank())
+
+mapTheme <- theme(plot.title =element_text(size=12),
+                  plot.subtitle = element_text(size=8),
+                  plot.caption = element_text(size = 6),
+                  axis.line=element_blank(),
+                  axis.text.x=element_blank(),
+                  axis.text.y=element_blank(),
+                  axis.ticks=element_blank(),
+                  axis.title.x=element_blank(),
+                  axis.title.y=element_blank(),
+                  panel.background=element_blank(),
+                  panel.border=element_blank(),
+                  panel.grid.major=element_line(colour = 'transparent'),
+                  panel.grid.minor=element_blank(),
+                  legend.direction = "vertical", 
+                  legend.position = "right",
+                  plot.margin = margin(1, 1, 1, 1, 'cm'),
+                  legend.key.height = unit(1, "cm"), legend.key.width = unit(0.2, "cm"))
+
+
+# load palette
+palette12 <- c("#B3C1F5","#869BF5","#506BD4","#1C48A4","#1A2299","#A2D4B7","#24A65A","#24A686","#2D695A","#b59bed","#7742C7","#4114A2")
+palette10 <- c("#B3C1F5","#869BF5","#506BD4","#1C48A4","#A2D4B7","#24A65A","#24A686","#2D695A","#b59bed","#7742C7")
+palette5 <- c("#B3C1F5","#869BF5","#506BD4","#1C48A4","#1A2299")
+palette5b <- c("#4114A2","#b59bed","#A2D4B7","#24A65A","#7742C7")
+palette4 <- c("#B3C1F5","#869BF5","#506BD4","#1C48A4")
+palette3 <- c("#B3C1F5","#869BF5","#1C48A4")
+palette2 <- c("#B3C1F5","#1C48A4")
+palette5NJtransit <- c("#F4F2F4","#04529C", "#BC228C", "#F4823C", "#EC764C")
+
+
 #setting up api key 
 census_api_key("b83a23afee4a8ed0fa131e449869e6577b87151e", overwrite = TRUE, install = TRUE)
 
@@ -151,35 +198,38 @@ summary(mod.1)
 
 
 ## Exploratory Analysis - Independent variables
-# Median Household Income 
+## dropping NA values first 
+comb_2021_filtered <- na.omit(comb_2021)
+
+# Median Household Income
 ggplot() +
-  geom_sf(data = comb_2021, 
+  geom_sf(data = comb_2021_filtered, 
           aes(fill = median_hh_income)) +
-  scale_fill_viridis(option = "A") +
+  scale_fill_viridis(option = "A", direction = -1) +
   labs(title = "Median Household Income by Census Tracts") +
-  theme_bw()
+  mapTheme
 
 #Percentage Vulnerable
 ggplot() +
-  geom_sf(data = comb_2021, 
-          aes(fill = perc_vulnerable)) +
-  scale_fill_viridis(option = "A") +
+  geom_sf(data = comb_2021_filtered, 
+          aes(fill = perc_vulnerable), na.rm = TRUE) +
+  scale_fill_viridis(option = "A", direction = -1) +
   labs(title = "Vulnerability Share by Census Tracts") +
-  theme_minimal()
+  mapTheme
 
 #Population Density
 ## consider plotting by category?
 ggplot() +
   geom_sf(data = comb_2021, 
           aes(fill = pop_dens)) +
-  scale_fill_viridis(option = "A") +
-  labs(title = "Vulnerability Share by Census Tracts") +
-  theme_minimal()
+  scale_fill_viridis(option = "A", direction = -1) +
+  labs(title = "Population Density by Census Tracts") +
+  mapTheme
 
 #Tree Canopy
 ggplot() +
   geom_sf(data = comb_2021, 
           aes(fill = sum_treecanopy)) +
-  scale_fill_viridis(option = "A") +
+  scale_fill_viridis(option = "D") +
   labs(title = "Tree Canopy by Census Tracts") +
-  theme_minimal()
+  mapTheme
