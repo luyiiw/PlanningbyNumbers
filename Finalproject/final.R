@@ -3,11 +3,13 @@ library(tidyverse)
 library(viridis)
 library(ggplot2)
 library(sf)
+library(mapview)
+library(riem)
 
-#setup 
+# Setup ####
 setwd("/Users/luyiiwong/Documents/GitHub/PlanningbyNumbers/Finalproject")
 
-# load themes
+## Load Themes. ####
 plotTheme <- theme(
   plot.title =element_text(size=12),
   plot.subtitle = element_text(size=8),
@@ -43,7 +45,7 @@ mapTheme <- theme(plot.title =element_text(size=12),
                   legend.key.height = unit(1, "cm"), legend.key.width = unit(0.2, "cm"))
 
 
-# load palette
+## Load Palette ####
 palette12 <- c("#B3C1F5","#869BF5","#506BD4","#1C48A4","#1A2299","#A2D4B7","#24A65A","#24A686","#2D695A","#b59bed","#7742C7","#4114A2")
 palette10 <- c("#B3C1F5","#869BF5","#506BD4","#1C48A4","#A2D4B7","#24A65A","#24A686","#2D695A","#b59bed","#7742C7")
 palette5 <- c("#B3C1F5","#869BF5","#506BD4","#1C48A4","#1A2299")
@@ -51,13 +53,12 @@ palette5b <- c("#4114A2","#b59bed","#A2D4B7","#24A65A","#7742C7")
 palette4 <- c("#B3C1F5","#869BF5","#506BD4","#1C48A4")
 palette3 <- c("#B3C1F5","#869BF5","#1C48A4")
 palette2 <- c("#B3C1F5","#1C48A4")
-palette5NJtransit <- c("#F4F2F4","#04529C", "#BC228C", "#F4823C", "#EC764C")
 
-
-#setting up api key 
+# Load Data ####
+## Setting Up Api Key #### 
 census_api_key("b83a23afee4a8ed0fa131e449869e6577b87151e", overwrite = TRUE, install = TRUE)
 
-#pulling data from census for 2011
+## Pulling Census Data for 2011 ####
 dat_2011 <- get_acs(geography = "tract", 
           variables = c("B01003_001E",
                         "B01001_003E",
@@ -98,10 +99,10 @@ dat_2011 <- get_acs(geography = "tract",
   mutate(vul_male = male_under5 + male_under10 + male_under15 + male_80 + male_over80,
          vul_female = female_under5 + female_under10 + female_under15 + female_80 + female_over80)
 
-# read in csv data
+## Read in csv data ####
 calc_2011 <- read_csv("2011_calculated.csv") 
 
-#cleaning data
+## Cleaning Data ####
 lac_2011_clean <- calc_2011 %>%
   select(GEOID, NAMELSAD, totalarea, sum_treecanopy, sum_naturalcover)
 
@@ -119,7 +120,7 @@ comb_2011 <- merge(dat_2011_clean, lac_2011_clean, by = "GEOID") %>%
          renter_share, owner_share, perc_vulnerable, total_vulnerable, sum_treecanopy, sum_naturalcover)
 
 
-# pulling data from census for 2021
+# Pulling Census Data for 2021 ####
 dat_2021 <- get_acs(geography = "tract", 
                     variables = c("B01003_001E",
                                   "B01001_003E",
@@ -160,10 +161,10 @@ dat_2021 <- get_acs(geography = "tract",
   mutate(vul_male = male_under5 + male_under10 + male_under15 + male_80 + male_over80,
          vul_female = female_under5 + female_under10 + female_under15 + female_80 + female_over80)
 
-# read in csv data
+## Read in csv data ####
 calc_2021 <- read.csv("2021_calculated.csv")
 
-#cleaning data
+## Cleaning Data ####
 lac_2021_clean <- calc_2021 %>%
   select(GEOID, NAMELSAD, totalarea, sum_treecanopy, sum_naturalcover)
 
@@ -176,14 +177,70 @@ dat_2021_clean <- dat_2021 %>%
   select(GEOID, NAME, total_pop, median_hh_income, renter_share, owner_share, 
          perc_vulnerable, total_vulnerable)
 
-#combining datasets
+# Combining Datasets ####
 comb_2021 <- merge(dat_2021_clean, lac_2021_clean, by = "GEOID") %>%
   mutate(pop_dens = total_pop/totalarea) %>%
   select(GEOID, NAMELSAD, total_pop, totalarea, pop_dens, median_hh_income, 
          renter_share, owner_share, perc_vulnerable, total_vulnerable, sum_treecanopy, sum_naturalcover)
 
 
-## 2021 Regression
+# Dependent Variable ####
+## Read in csv data 2011 weather ####
+temp_2011 <- read.csv("PHL_maxtemp_2011.csv")
+
+temp_2011 <- temp_2011 %>%
+  mutate(Latitude = as.double(Latitude),
+         Longitude = as.double(Longitude))
+
+temp_2011 <- as.double(temp_2011)
+temp_2011 <-as.double(temp_2011$Longitude)
+
+
+mapview(temp_2011, xcol= "Logitude", ycol= "Latitude", crs = 4269, grid = FALSE)
+
+
+heat_watch_2022 <- "r3dp9-datacite.json"
+
+# Weather Feature Stations ####
+# https://www.rdocumentation.org/packages/riem/versions/0.3.0/topics/riem_measures
+
+weather.Panel.PHL <- 
+  riem_measures(station = "PHL", date_start = "2011-07-23", date_end = "2011-07-24") %>%
+  dplyr::select(valid, tmpf)%>%
+  replace(is.na(.), 0) %>%
+  mutate(interval60 = ymd_h(substr(valid,1,13))) %>%
+  mutate(dotw = wday(interval60, label=TRUE)) %>%
+  group_by(interval60) %>%
+  summarize(Temperature.PHL = max(tmpf)) %>%
+  mutate(Temperature.PHL = ifelse(Temperature.PHL == 0, 42, Temperature.PHL))
+
+weather.Panel.PNE <- 
+  riem_measures(station = "PNE", date_start = "2011-07-23", date_end = "2011-07-24") %>%
+  dplyr::select(valid, tmpf)%>%
+  replace(is.na(.), 0) %>%
+  mutate(interval60 = ymd_h(substr(valid,1,13))) %>%
+  mutate(dotw = wday(interval60, label=TRUE)) %>%
+  group_by(interval60) %>%
+  summarize(Temperature.PNE = max(tmpf)) %>%
+  mutate(Temperature.PNE = ifelse(Temperature.PNE == 0, 42, Temperature.PNE))
+
+weather.Panel.LOM <- 
+  riem_measures(station = "LOM", date_start = "2011-07-23", date_end = "2011-07-24") %>%
+  dplyr::select(valid, tmpf)%>%
+  replace(is.na(.), 0) %>%
+  mutate(interval60 = ymd_h(substr(valid,1,13))) %>%
+  mutate(dotw = wday(interval60, label=TRUE)) %>%
+  group_by(interval60) %>%
+  summarize(Temperature.LOM = max(tmpf)) %>%
+  mutate(Temperature.LOM = ifelse(Temperature.LOM == 0, 42, Temperature.LOM))
+
+## Combine weather data ####
+comb_temp_2011 <- merge(weather.Panel.LOM, weather.Panel.PHL, by = "interval60")
+comb_temp_2011 <- merge(comb_temp_2011, weather.Panel.PNE, by = "interval60")
+
+
+
+# 2021 Regression ####
 # read in lst data
 lst_2021 <- read.csv("2021_lst_median.csv")
 
