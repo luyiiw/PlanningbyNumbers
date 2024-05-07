@@ -341,6 +341,12 @@ ggplot(dat_2011, aes(x= surf_share, y=mean_temp)) +
   labs(title = "Temperature and Permeable Surfaces Share 2011") +
   plotTheme
 
+## Median Household Income
+ggplot(dat_2011, aes(x= median_hh_income, y=mean_temp)) + 
+  geom_point() +
+  labs(title = "Mean Temperature and Median Household Income 2011") +
+  plotTheme
+
 
 ### 2021 ####
 # edit to calculate tree share 2021
@@ -364,6 +370,11 @@ ggplot(dat_2021, aes(x= tree_share, y=mean_temp)) +
 ggplot(dat_2021, aes(x= surf_share, y=mean_temp)) + 
   geom_point() +
   labs(title = "Temperature and Permeable Surfaces Share 2021") +
+  plotTheme
+
+ggplot(dat_2021, aes(x= median_hh_income, y=mean_temp)) + 
+  geom_point() +
+  labs(title = "Temperature and Median Household Income 2021") +
   plotTheme
 
 #correlation test - median income and renter share
@@ -411,5 +422,3 @@ plot(density(resid(mod.final)))
 
 plot(mod.final.2)
 plot(density(resid(mod.final.2)))
-
-
