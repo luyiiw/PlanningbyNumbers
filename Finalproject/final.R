@@ -59,7 +59,7 @@ palette2 <- c("#B3C1F5","#1C48A4")
 census_api_key("b83a23afee4a8ed0fa131e449869e6577b87151e", overwrite = TRUE, install = TRUE)
 
 ## Pulling Census Data for 2011 ####
-dat_2011 <- get_acs(geography = "tract", 
+demo_2011 <- get_acs(geography = "tract", 
           variables = c("B01003_001E",
                         "B01001_003E",
                         "B01001_004E",
@@ -100,13 +100,20 @@ dat_2011 <- get_acs(geography = "tract",
          vul_female = female_under5 + female_under10 + female_under15 + female_80 + female_over80)
 
 ## Read in csv data ####
-calc_2011 <- read_csv("2011_calculated.csv") 
+temp_2011 <- read_csv("2011_FinalBT.csv") 
+calc_2011 <- read.csv("2011_calculated.csv")
 
 ## Cleaning Data ####
-lac_2011_clean <- calc_2011 %>%
-  select(GEOID, NAMELSAD, totalarea, sum_treecanopy, sum_naturalcover)
+temp_2011 <- temp_2011 %>%
+  select(GEOID, AREA, MEAN) %>%
+  rename(total_area = AREA,
+         mean_temp = MEAN)
 
-dat_2011_clean <- dat_2011 %>%
+calc_2011 <- calc_2011 %>%
+  select(GEOID, NAMELSAD, sum_treecanopy, sum_naturalcover)
+
+## Cleaning the demographic data ####
+dat_2011 <- demo_2011 %>%
   mutate(total_vulnerable = vul_female + vul_male,
          perc_vulnerable = total_vulnerable/total_pop,
          total_households = renter_occupied + owner_occupied,
@@ -114,14 +121,18 @@ dat_2011_clean <- dat_2011 %>%
          owner_share = owner_occupied/total_households) %>%
   select(GEOID, NAME, total_pop, median_hh_income, renter_share, owner_share, perc_vulnerable, total_vulnerable)
 
-comb_2011 <- merge(dat_2011_clean, lac_2011_clean, by = "GEOID") %>%
-  mutate(pop_dens = total_pop/totalarea) %>%
-  select(GEOID, NAMELSAD, total_pop, totalarea, pop_dens, median_hh_income, 
-         renter_share, owner_share, perc_vulnerable, total_vulnerable, sum_treecanopy, sum_naturalcover)
+## Joining demographic, tree, and temperature data ####
+dat_2011 <- merge(dat_2011, temp_2011, by = "GEOID") %>%
+  mutate(pop_dens = total_pop/total_area)
+# observations drop from 384 to 37
 
+dat_2011 <- merge(dat_2011, calc_2011, by = "GEOID") %>%
+  select(GEOID, NAMELSAD, mean_temp, total_pop, total_area, pop_dens, median_hh_income, 
+         renter_share, owner_share, perc_vulnerable, total_vulnerable, sum_treecanopy, sum_naturalcover)
+# sum_naturalcover has NA values
 
 # Pulling Census Data for 2021 ####
-dat_2021 <- get_acs(geography = "tract", 
+demo_2021 <- get_acs(geography = "tract", 
                     variables = c("B01003_001E",
                                   "B01001_003E",
                                   "B01001_004E",
@@ -162,13 +173,19 @@ dat_2021 <- get_acs(geography = "tract",
          vul_female = female_under5 + female_under10 + female_under15 + female_80 + female_over80)
 
 ## Read in csv data ####
+temp_2021 <- read_csv("2021_FinalBT.csv") 
 calc_2021 <- read.csv("2021_calculated.csv")
 
 ## Cleaning Data ####
-lac_2021_clean <- calc_2021 %>%
-  select(GEOID, NAMELSAD, totalarea, sum_treecanopy, sum_naturalcover)
+temp_2021 <- temp_2021 %>%
+  select(GEOID, AREA, MEAN) %>%
+  rename(total_area = AREA,
+         mean_temp = MEAN)
 
-dat_2021_clean <- dat_2021 %>%
+calc_2021 <- calc_2021 %>%
+  select(GEOID, NAMELSAD, sum_treecanopy, sum_naturalcover)
+
+dat_2021 <- demo_2021 %>%
   mutate(total_vulnerable = vul_female + vul_male,
          perc_vulnerable = total_vulnerable/total_pop,
          total_households = renter_occupied + owner_occupied,
@@ -177,66 +194,100 @@ dat_2021_clean <- dat_2021 %>%
   select(GEOID, NAME, total_pop, median_hh_income, renter_share, owner_share, 
          perc_vulnerable, total_vulnerable)
 
-# Combining Datasets ####
-comb_2021 <- merge(dat_2021_clean, lac_2021_clean, by = "GEOID") %>%
-  mutate(pop_dens = total_pop/totalarea) %>%
-  select(GEOID, NAMELSAD, total_pop, totalarea, pop_dens, median_hh_income, 
+## Joining demographic, tree, and temperature data ####
+dat_2021 <- merge(dat_2021, temp_2021, by = "GEOID") %>%
+  mutate(pop_dens = total_pop/total_area)
+# drop from 408 to 405 obersvations
+
+dat_2021 <- merge(dat_2021, calc_2021, by = "GEOID") %>%
+  select(GEOID, NAMELSAD, mean_temp, total_pop, total_area, pop_dens, median_hh_income, 
          renter_share, owner_share, perc_vulnerable, total_vulnerable, sum_treecanopy, sum_naturalcover)
 
 
-# Dependent Variable ####
-## Read in csv data 2011 weather ####
-temp_2011 <- read.csv("PHL_maxtemp_2011.csv")
+# Exploratory Analysis ####
+## 2011 Independent variables ####
+## replacing NA with 0 for natural landcover since there are high perc of NAs
+dat_2011$sum_naturalcover[is.na(dat_2011$sum_naturalcover)] <- 0
 
-temp_2011 <- temp_2011 %>%
-  mutate(Latitude = as.double(Latitude),
-         Longitude = as.double(Longitude))
+## dropping NA values  
+dat_2011_filtered <- na.omit(dat_2011)
+# dropped from 379 to 370 observations
 
-temp_2011 <- as.double(temp_2011)
-temp_2011 <-as.double(temp_2011$Longitude)
+# Median Household Income
+options(scipen=999)
+ggplot() +
+  geom_sf(data = dat_2011_filtered, 
+          aes(fill = median_hh_income)) +
+  scale_fill_viridis(option = "A", direction = -1) +
+  labs(title = "Median Household Income by \nCensus Tracts in 2011") +
+  mapTheme
+
+#Percentage Vulnerable
+ggplot() +
+  geom_sf(data = dat_2021_filtered, 
+          aes(fill = perc_vulnerable), na.rm = TRUE) +
+  scale_fill_viridis(option = "A", direction = -1) +
+  labs(title = "Vulnerability Share by Census Tracts in 2011") +
+  mapTheme
+
+#Population Density
+## consider plotting by category?
+ggplot() +
+  geom_sf(data = dat_2021_filtered, 
+          aes(fill = pop_dens)) +
+  scale_fill_viridis(option = "A", direction = -1) +
+  labs(title = "Population Density by Census Tracts in 2011") +
+  mapTheme
+
+#Tree Canopy
+ggplot() +
+  geom_sf(data = dat_2011_filtered, 
+          aes(fill = sum_treecanopy)) +
+  scale_fill_viridis(option = "D") +
+  labs(title = "Tree Canopy by Census Tracts in 2011") +
+  mapTheme
+
+## 2021 Independent variables ####
+## dropping NA values first 
+dat_2021_filtered <- na.omit(dat_2021)
+# dropped from 405 to 380 observations
+
+# Median Household Income
+ggplot() +
+  geom_sf(data = dat_2021_filtered, 
+          aes(fill = median_hh_income)) +
+  scale_fill_viridis(option = "A", direction = -1) +
+  labs(title = "Median Household Income by Census Tracts") +
+  mapTheme
+
+#Percentage Vulnerable
+ggplot() +
+  geom_sf(data = dat_2021_filtered, 
+          aes(fill = perc_vulnerable), na.rm = TRUE) +
+  scale_fill_viridis(option = "A", direction = -1) +
+  labs(title = "Vulnerability Share by Census Tracts") +
+  mapTheme
+
+#Population Density
+## consider plotting by category?
+ggplot() +
+  geom_sf(data = dat_2021_filtered, 
+          aes(fill = pop_dens)) +
+  scale_fill_viridis(option = "A", direction = -1) +
+  labs(title = "Population Density by Census Tracts") +
+  mapTheme
+
+#Tree Canopy
+ggplot() +
+  geom_sf(data = dat_2021_filtered, 
+          aes(fill = sum_treecanopy)) +
+  scale_fill_viridis(option = "D") +
+  labs(title = "Tree Canopy by Census Tracts") +
+  mapTheme
 
 
-mapview(temp_2011, xcol= "Logitude", ycol= "Latitude", crs = 4269, grid = FALSE)
+## Independent Variable ####
 
-
-heat_watch_2022 <- "r3dp9-datacite.json"
-
-# Weather Feature Stations ####
-# https://www.rdocumentation.org/packages/riem/versions/0.3.0/topics/riem_measures
-
-weather.Panel.PHL <- 
-  riem_measures(station = "PHL", date_start = "2011-07-23", date_end = "2011-07-24") %>%
-  dplyr::select(valid, tmpf)%>%
-  replace(is.na(.), 0) %>%
-  mutate(interval60 = ymd_h(substr(valid,1,13))) %>%
-  mutate(dotw = wday(interval60, label=TRUE)) %>%
-  group_by(interval60) %>%
-  summarize(Temperature.PHL = max(tmpf)) %>%
-  mutate(Temperature.PHL = ifelse(Temperature.PHL == 0, 42, Temperature.PHL))
-
-weather.Panel.PNE <- 
-  riem_measures(station = "PNE", date_start = "2011-07-23", date_end = "2011-07-24") %>%
-  dplyr::select(valid, tmpf)%>%
-  replace(is.na(.), 0) %>%
-  mutate(interval60 = ymd_h(substr(valid,1,13))) %>%
-  mutate(dotw = wday(interval60, label=TRUE)) %>%
-  group_by(interval60) %>%
-  summarize(Temperature.PNE = max(tmpf)) %>%
-  mutate(Temperature.PNE = ifelse(Temperature.PNE == 0, 42, Temperature.PNE))
-
-weather.Panel.LOM <- 
-  riem_measures(station = "LOM", date_start = "2011-07-23", date_end = "2011-07-24") %>%
-  dplyr::select(valid, tmpf)%>%
-  replace(is.na(.), 0) %>%
-  mutate(interval60 = ymd_h(substr(valid,1,13))) %>%
-  mutate(dotw = wday(interval60, label=TRUE)) %>%
-  group_by(interval60) %>%
-  summarize(Temperature.LOM = max(tmpf)) %>%
-  mutate(Temperature.LOM = ifelse(Temperature.LOM == 0, 42, Temperature.LOM))
-
-## Combine weather data ####
-comb_temp_2011 <- merge(weather.Panel.LOM, weather.Panel.PHL, by = "interval60")
-comb_temp_2011 <- merge(comb_temp_2011, weather.Panel.PNE, by = "interval60")
 
 
 
@@ -252,41 +303,3 @@ mod.1 <- lm(temp ~ median_hh_income + renter_share + perc_vulnerable + sum_treec
               sum_naturalcover, data = comb_2021)
 
 summary(mod.1)
-
-
-## Exploratory Analysis - Independent variables
-## dropping NA values first 
-comb_2021_filtered <- na.omit(comb_2021)
-
-# Median Household Income
-ggplot() +
-  geom_sf(data = comb_2021_filtered, 
-          aes(fill = median_hh_income)) +
-  scale_fill_viridis(option = "A", direction = -1) +
-  labs(title = "Median Household Income by Census Tracts") +
-  mapTheme
-
-#Percentage Vulnerable
-ggplot() +
-  geom_sf(data = comb_2021_filtered, 
-          aes(fill = perc_vulnerable), na.rm = TRUE) +
-  scale_fill_viridis(option = "A", direction = -1) +
-  labs(title = "Vulnerability Share by Census Tracts") +
-  mapTheme
-
-#Population Density
-## consider plotting by category?
-ggplot() +
-  geom_sf(data = comb_2021, 
-          aes(fill = pop_dens)) +
-  scale_fill_viridis(option = "A", direction = -1) +
-  labs(title = "Population Density by Census Tracts") +
-  mapTheme
-
-#Tree Canopy
-ggplot() +
-  geom_sf(data = comb_2021, 
-          aes(fill = sum_treecanopy)) +
-  scale_fill_viridis(option = "D") +
-  labs(title = "Tree Canopy by Census Tracts") +
-  mapTheme
