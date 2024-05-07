@@ -110,7 +110,8 @@ temp_2011 <- temp_2011 %>%
          mean_temp = MEAN)
 
 calc_2011 <- calc_2011 %>%
-  select(GEOID, NAMELSAD, sum_treecanopy, sum_naturalcover)
+  rename(sqmile_area = totalarea)
+  select(GEOID, NAMELSAD, sum_treecanopy, sum_naturalcover, sqmile_area)
 
 ## Cleaning the demographic data ####
 dat_2011 <- demo_2011 %>%
@@ -128,7 +129,7 @@ dat_2011 <- merge(dat_2011, temp_2011, by = "GEOID") %>%
 
 dat_2011 <- merge(dat_2011, calc_2011, by = "GEOID") %>%
   select(GEOID, NAMELSAD, mean_temp, total_pop, total_area, pop_dens, median_hh_income, 
-         renter_share, owner_share, perc_vulnerable, total_vulnerable, sum_treecanopy, sum_naturalcover)
+         renter_share, owner_share, perc_vulnerable, total_vulnerable, sum_treecanopy, sum_naturalcover, sqmile_area)
 # sum_naturalcover has NA values
 
 # Pulling Census Data for 2021 ####
@@ -202,6 +203,14 @@ dat_2021 <- merge(dat_2021, temp_2021, by = "GEOID") %>%
 dat_2021 <- merge(dat_2021, calc_2021, by = "GEOID") %>%
   select(GEOID, NAMELSAD, mean_temp, total_pop, total_area, pop_dens, median_hh_income, 
          renter_share, owner_share, perc_vulnerable, total_vulnerable, sum_treecanopy, sum_naturalcover)
+
+# recategorize income group
+dat_2021_edit <- dat_2021 %>%
+  mutate(income_category = case_when(
+    median_hh_income < 30000 ~ "Low",
+    median_hh_income >= 30000 & median_hh_income < 60000 ~ "Medium",
+    median_hh_income >= 60000 ~ "High"
+  ))
 
 
 # Exploratory Analysis ####
@@ -287,9 +296,62 @@ ggplot() +
 
 
 ## Independent Variable ####
+## Temperature by income group ####
+ggplot() +
+  geom_sf(data = dat_2011, 
+          aes(fill = mean_temp)) +
+  scale_fill_viridis(option = "A", direction = -1) +
+  labs(title = "Mean Temperature by Census Tracts in 2011") +
+  mapTheme
+
+ggplot() +
+  geom_sf(data = dat_2021, 
+          aes(fill = mean_temp)) +
+  scale_fill_viridis(option = "A", direction = -1) +
+  labs(title = "Mean Temperature by Census Tracts in 2021") +
+  mapTheme
+
+## Scatter Plot ####
+#scatter plot - temperature as y-axis 
+# tree canopy, population density, natural land cover, 
+
+# edit to calculate tree share 
+dat_2011_edit <- dat_2011 %>%
+  mutate(tree_share = sum_treecanopy/total_area,
+         surf_share = sum_naturalcover/total_area)
 
 
+### 2011 ####
+# Population Density
+ggplot(dat_2011, aes(x=pop_dens, y=mean_temp)) + 
+  geom_point() +
+  labs(title = "Temperature and Population Density") +
+  plotTheme
 
+# Tree Canopy 
+ggplot(dat_2011, aes(x= sum_treecanopy, y=mean_temp)) + 
+  geom_point() +
+  labs(title = "Temperature and Tree Canopy") +
+  plotTheme
+  
+ggplot(dat_2011, aes(x= log(sum_treecanopy), y=mean_temp)) + 
+  geom_point() +
+  labs(title = "Temperature and Tree Canopy (logged)") +
+  plotTheme
+
+
+# Natural Land Cover
+ggplot(dat_2011, aes(x= sum_naturalcover, y=mean_temp)) + 
+  geom_point() +
+  labs(title = "Temperature and Permeable Surfaces") +
+  plotTheme
+
+ggplot(dat_2011, aes(x= log(sum_naturalcover), y=mean_temp)) + 
+  geom_point() +
+  labs(title = "Temperature and Permeable Surfaces (logged)") +
+  plotTheme
+
+### 2011 ####
 
 # 2021 Regression ####
 # read in lst data
