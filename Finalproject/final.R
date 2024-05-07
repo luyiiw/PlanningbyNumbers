@@ -110,7 +110,7 @@ temp_2011 <- temp_2011 %>%
          mean_temp = MEAN)
 
 calc_2011 <- calc_2011 %>%
-  rename(sqmile_area = totalarea)
+  rename(sqmile_area = totalarea) %>%
   select(GEOID, NAMELSAD, sum_treecanopy, sum_naturalcover, sqmile_area)
 
 ## Cleaning the demographic data ####
@@ -183,8 +183,9 @@ temp_2021 <- temp_2021 %>%
   rename(total_area = AREA,
          mean_temp = MEAN)
 
-calc_2021 <- calc_2021 %>%
-  select(GEOID, NAMELSAD, sum_treecanopy, sum_naturalcover)
+calc_2021 <- calc_2021%>%
+  rename(sqmile_area = totalarea) %>%
+  select(GEOID, NAMELSAD, sum_treecanopy, sum_naturalcover, sqmile_area)
 
 dat_2021 <- demo_2021 %>%
   mutate(total_vulnerable = vul_female + vul_male,
@@ -202,15 +203,16 @@ dat_2021 <- merge(dat_2021, temp_2021, by = "GEOID") %>%
 
 dat_2021 <- merge(dat_2021, calc_2021, by = "GEOID") %>%
   select(GEOID, NAMELSAD, mean_temp, total_pop, total_area, pop_dens, median_hh_income, 
-         renter_share, owner_share, perc_vulnerable, total_vulnerable, sum_treecanopy, sum_naturalcover)
+         renter_share, owner_share, perc_vulnerable, total_vulnerable, sum_treecanopy, 
+         sum_naturalcover, sqmile_area)
 
 # recategorize income group
-dat_2021_edit <- dat_2021 %>%
-  mutate(income_category = case_when(
-    median_hh_income < 30000 ~ "Low",
-    median_hh_income >= 30000 & median_hh_income < 60000 ~ "Medium",
-    median_hh_income >= 60000 ~ "High"
-  ))
+#dat_2021_edit <- dat_2021 %>%
+#  mutate(income_category = case_when(
+#    median_hh_income < 30000 ~ "Low",
+#    median_hh_income >= 30000 & median_hh_income < 60000 ~ "Medium",
+#    median_hh_income >= 60000 ~ "High"
+#  ))
 
 
 # Exploratory Analysis ####
@@ -233,7 +235,7 @@ ggplot() +
 
 #Percentage Vulnerable
 ggplot() +
-  geom_sf(data = dat_2021_filtered, 
+  geom_sf(data = dat_2011_filtered, 
           aes(fill = perc_vulnerable), na.rm = TRUE) +
   scale_fill_viridis(option = "A", direction = -1) +
   labs(title = "Vulnerability Share by Census Tracts in 2011") +
@@ -315,11 +317,10 @@ ggplot() +
 #scatter plot - temperature as y-axis 
 # tree canopy, population density, natural land cover, 
 
-# edit to calculate tree share 
-dat_2011_edit <- dat_2011 %>%
-  mutate(tree_share = sum_treecanopy/total_area,
-         surf_share = sum_naturalcover/total_area)
-
+# edit to calculate tree share 2011
+dat_2011 <- dat_2011 %>%
+  mutate(tree_share = sum_treecanopy/sqmile_area,
+         surf_share = sum_naturalcover/sqmile_area)
 
 ### 2011 ####
 # Population Density
@@ -329,29 +330,43 @@ ggplot(dat_2011, aes(x=pop_dens, y=mean_temp)) +
   plotTheme
 
 # Tree Canopy 
-ggplot(dat_2011, aes(x= sum_treecanopy, y=mean_temp)) + 
+ggplot(dat_2011, aes(x= tree_share, y=mean_temp)) + 
   geom_point() +
-  labs(title = "Temperature and Tree Canopy") +
+  labs(title = "Temperature and Tree Canopy Share") +
   plotTheme
-  
-ggplot(dat_2011, aes(x= log(sum_treecanopy), y=mean_temp)) + 
-  geom_point() +
-  labs(title = "Temperature and Tree Canopy (logged)") +
-  plotTheme
-
 
 # Natural Land Cover
-ggplot(dat_2011, aes(x= sum_naturalcover, y=mean_temp)) + 
+ggplot(dat_2011, aes(x= surf_share, y=mean_temp)) + 
   geom_point() +
-  labs(title = "Temperature and Permeable Surfaces") +
+  labs(title = "Temperature and Permeable Surfaces Share") +
   plotTheme
 
-ggplot(dat_2011, aes(x= log(sum_naturalcover), y=mean_temp)) + 
+
+### 2021 ####
+# edit to calculate tree share 2021
+dat_2021 <- dat_2021 %>%
+  mutate(tree_share = sum_treecanopy/sqmile_area,
+         surf_share = sum_naturalcover/sqmile_area)
+
+# Population Density
+ggplot(dat_2021, aes(x=pop_dens, y=mean_temp)) + 
   geom_point() +
-  labs(title = "Temperature and Permeable Surfaces (logged)") +
+  labs(title = "Temperature and Population Density 2021") +
   plotTheme
 
-### 2011 ####
+# Tree Canopy 
+ggplot(dat_2021, aes(x= tree_share, y=mean_temp)) + 
+  geom_point() +
+  labs(title = "Temperature and Tree Canopy Share 2021") +
+  plotTheme
+
+# Natural Land Cover
+ggplot(dat_2021, aes(x= surf_share, y=mean_temp)) + 
+  geom_point() +
+  labs(title = "Temperature and Permeable Surfaces Share 2021") +
+  plotTheme
+
+
 
 # 2021 Regression ####
 # read in lst data
