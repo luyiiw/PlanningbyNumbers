@@ -397,3 +397,19 @@ mod.final.2 <- lm(temp ~ pop_dens + median_hh_income + renter_share + perc_vulne
 summary(mod.final.2)
 
 
+## CHECKING ASSUMPTIONS
+library(car)
+vif(mod.final) 
+vif(mod.1)
+vif(mod.final.2)
+vif(mod.2)
+# all of the VIF show that the independent variables have moderate correlation to the regression model
+
+#residuals
+plot(mod.final)
+plot(density(resid(mod.final)))
+
+plot(mod.final.2)
+plot(density(resid(mod.final.2)))
+
+
