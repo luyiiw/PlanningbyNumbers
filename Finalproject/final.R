@@ -326,19 +326,19 @@ dat_2011 <- dat_2011 %>%
 # Population Density
 ggplot(dat_2011, aes(x=pop_dens, y=mean_temp)) + 
   geom_point() +
-  labs(title = "Temperature and Population Density") +
+  labs(title = "Temperature and Population Density 2011") +
   plotTheme
 
 # Tree Canopy 
 ggplot(dat_2011, aes(x= tree_share, y=mean_temp)) + 
   geom_point() +
-  labs(title = "Temperature and Tree Canopy Share") +
+  labs(title = "Temperature and Tree Canopy Share 2011") +
   plotTheme
 
 # Natural Land Cover
 ggplot(dat_2011, aes(x= surf_share, y=mean_temp)) + 
   geom_point() +
-  labs(title = "Temperature and Permeable Surfaces Share") +
+  labs(title = "Temperature and Permeable Surfaces Share 2011") +
   plotTheme
 
 
@@ -366,17 +366,34 @@ ggplot(dat_2021, aes(x= surf_share, y=mean_temp)) +
   labs(title = "Temperature and Permeable Surfaces Share 2021") +
   plotTheme
 
-
+#correlation test - median income and renter share
 
 # 2021 Regression ####
-# read in lst data
-lst_2021 <- read.csv("2021_lst_median.csv")
-
-comb_2021 <- merge(comb_2021, lst_2021, by = "GEOID") %>%
-  rename(temp = MEDIAN)
+reg_2021 <- dat_2021 %>%
+  select(GEOID, mean_temp, total_pop, pop_dens, median_hh_income, renter_share, perc_vulnerable,
+         tree_share, surf_share) %>%
+  rename(temp = mean_temp)
 
 # Regression
-mod.1 <- lm(temp ~ median_hh_income + renter_share + perc_vulnerable + sum_treecanopy +
-              sum_naturalcover, data = comb_2021)
-
+mod.1 <- lm(temp ~  tree_share + surf_share, data = reg_2021)
 summary(mod.1)
+
+mod.final <- lm(temp ~ pop_dens + median_hh_income + renter_share + perc_vulnerable + tree_share +
+              surf_share, data = reg_2021)
+summary(mod.final)
+
+# 2011 Regression ####
+reg_2011 <- dat_2011 %>%
+  select(GEOID, mean_temp, total_pop, pop_dens, median_hh_income, renter_share, perc_vulnerable,
+         tree_share, surf_share) %>%
+  rename(temp = mean_temp)
+
+# Regression
+mod.2 <- lm(temp ~  tree_share + surf_share, data = reg_2011)
+summary(mod.2)
+
+mod.final.2 <- lm(temp ~ pop_dens + median_hh_income + renter_share + perc_vulnerable + tree_share +
+                  surf_share, data = reg_2011)
+summary(mod.final.2)
+
+
