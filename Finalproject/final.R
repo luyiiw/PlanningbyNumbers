@@ -45,15 +45,6 @@ mapTheme <- theme(plot.title =element_text(size=12),
                   legend.key.height = unit(1, "cm"), legend.key.width = unit(0.2, "cm"))
 
 
-## Load Palette ####
-palette12 <- c("#B3C1F5","#869BF5","#506BD4","#1C48A4","#1A2299","#A2D4B7","#24A65A","#24A686","#2D695A","#b59bed","#7742C7","#4114A2")
-palette10 <- c("#B3C1F5","#869BF5","#506BD4","#1C48A4","#A2D4B7","#24A65A","#24A686","#2D695A","#b59bed","#7742C7")
-palette5 <- c("#B3C1F5","#869BF5","#506BD4","#1C48A4","#1A2299")
-palette5b <- c("#4114A2","#b59bed","#A2D4B7","#24A65A","#7742C7")
-palette4 <- c("#B3C1F5","#869BF5","#506BD4","#1C48A4")
-palette3 <- c("#B3C1F5","#869BF5","#1C48A4")
-palette2 <- c("#B3C1F5","#1C48A4")
-
 # Load Data ####
 ## Setting Up Api Key #### 
 census_api_key("b83a23afee4a8ed0fa131e449869e6577b87151e", overwrite = TRUE, install = TRUE)
@@ -230,8 +221,8 @@ ggplot() +
   geom_sf(data = dat_2011_filtered, 
           aes(fill = median_hh_income)) +
   scale_fill_viridis(option = "A", direction = -1) +
-  labs(title = "Median Household Income by \nCensus Tracts in 2011",
-       caption = "Figure 4.1.1") +
+  labs(title = "Median Household Income by Census Tracts in 2011",
+       caption = "Figure 3.10") +
   mapTheme
 
 #Percentage Vulnerable
@@ -239,7 +230,8 @@ ggplot() +
   geom_sf(data = dat_2011_filtered, 
           aes(fill = perc_vulnerable), na.rm = TRUE) +
   scale_fill_viridis(option = "A", direction = -1, limits = c(0, 0.6)) +
-  labs(title = "Vulnerability Share by Census Tracts in 2011") +
+  labs(title = "Vulnerability Share by Census Tracts in 2011",
+       caption = "Figure 3.12") +
   mapTheme
 
 #Population Density
@@ -248,19 +240,45 @@ ggplot() +
   geom_sf(data = dat_2021_filtered, 
           aes(fill = pop_dens)) +
   scale_fill_viridis(option = "A", direction = -1, limits = c(0, 0.04)) +
-  labs(title = "Population Density by Census Tracts in 2011") +
+  labs(title = "Population Density by Census Tracts in 2011",
+       caption = "Figure 3.14") +
   mapTheme
 
 #Tree Canopy
 ggplot() +
   geom_sf(data = dat_2011_filtered, 
           aes(fill = sum_treecanopy)) +
-  scale_fill_viridis(option = "D") +
-  labs(title = "Tree Canopy by Census Tracts in 2011") +
+  scale_fill_viridis(option = "D", direction = -1, limits = c(0, 3)) +
+  labs(title = "Tree Canopy by Census Tracts in 2011",
+       caption = "Figure 3.6") +
+  mapTheme
+
+# Permeable land cover
+ggplot() +
+  geom_sf(data = dat_2011_filtered, 
+          aes(fill = sum_naturalcover)) +
+  scale_fill_viridis(option = "G", limits = c(0, 1.8)) +
+  labs(title = "Total Permeable Land Cover by Census Tracts in 2011",
+       caption = "Figure 3.8") +
+  mapTheme
+
+ggplot() +
+  geom_sf(data = dat_2021_filtered, 
+          aes(fill = sum_naturalcover)) +
+  scale_fill_viridis(option = "G", limits = c(0, 1.8)) +
+  labs(title = "Total Permeable Land Cover by Census Tracts in 2021",
+       caption = "Figure 3.9") +
   mapTheme
 
 ### Data Summary 2011 ####
 # Skew
+
+ggplot(dat_2011, aes(x=mean_temp)) + 
+  geom_histogram(color="black", fill="#ba4343") +
+  labs(title = "Distribution of Temperature in 2011",
+       caption = "Figure 3.2") +
+  plotTheme
+
 hist(dat_2011$mean_temp)
 hist(dat_2011$tree_share)
 hist(dat_2011$surf_share)
@@ -281,7 +299,8 @@ ggplot() +
   geom_sf(data = dat_2021_filtered, 
           aes(fill = median_hh_income)) +
   scale_fill_viridis(option = "A", direction = -1) +
-  labs(title = "Median Household Income by Census Tracts in 2021") +
+  labs(title = "Median Household Income by Census Tracts in 2021",
+       caption = "Figure 3.11") +
   mapTheme
 
 #Percentage Vulnerable
@@ -289,7 +308,8 @@ ggplot() +
   geom_sf(data = dat_2021_filtered, 
           aes(fill = perc_vulnerable), na.rm = TRUE) +
   scale_fill_viridis(option = "A", direction = -1, limits = c(0, 0.6)) +
-  labs(title = "Vulnerability Share by Census Tracts in 2021") +
+  labs(title = "Vulnerability Share by Census Tracts in 2021",
+       caption = "Figure 3.13") +
   mapTheme
 
 #Population Density
@@ -298,18 +318,26 @@ ggplot() +
   geom_sf(data = dat_2021_filtered, 
           aes(fill = pop_dens)) +
   scale_fill_viridis(option = "A", direction = -1, limits = c(0, 0.04)) +
-  labs(title = "Population Density by Census Tracts 2021") +
+  labs(title = "Population Density by Census Tracts 2021",
+       caption = "Figure 3.15") +
   mapTheme
 
 #Tree Canopy
 ggplot() +
   geom_sf(data = dat_2021_filtered, 
           aes(fill = sum_treecanopy)) +
-  scale_fill_viridis(option = "D", limits = c(0, 3.5)) +
-  labs(title = "Tree Canopy by Census Tracts") +
+  scale_fill_viridis(option = "D", direction = -1, limits = c(0, 3)) +
+  labs(title = "Tree Canopy by Census Tracts in 2021",
+       caption = "Figure 3.7") +
   mapTheme
 
 ### Skew 2021####
+ggplot(dat_2021, aes(x=mean_temp)) + 
+  geom_histogram(color="black", fill="#ba4343") +
+  labs(title = "Distribution of Temperature in 2021",
+       caption = "Figure 3.4") +
+  plotTheme
+
 hist(dat_2021$mean_temp)
 hist(dat_2021$tree_share)
 hist(dat_2021$surf_share)
@@ -320,19 +348,21 @@ var(dat_2021$mean_temp)
 
 
 ## Independent Variable ####
-## Temperature by income group ####
+## Temperature by census tract ####
 ggplot() +
   geom_sf(data = dat_2011, 
           aes(fill = mean_temp)) +
   scale_fill_viridis(option = "A", direction = -1) +
-  labs(title = "Mean Temperature by Census Tracts in 2011") +
+  labs(title = "Mean Temperature by Census Tracts in 2011",
+       caption = "Figure 3.3") +
   mapTheme
 
 ggplot() +
   geom_sf(data = dat_2021, 
           aes(fill = mean_temp)) +
   scale_fill_viridis(option = "A", direction = -1) +
-  labs(title = "Mean Temperature by Census Tracts in 2021") +
+  labs(title = "Mean Temperature by Census Tracts in 2021",
+       caption = "Figure 3.5") +
   mapTheme
 
 ## Scatter Plot ####
@@ -348,25 +378,29 @@ dat_2011 <- dat_2011 %>%
 # Population Density
 ggplot(dat_2011, aes(x=pop_dens, y=mean_temp)) + 
   geom_point() +
-  labs(title = "Temperature and Population Density 2011") +
+  labs(title = "Temperature and Population Density 2011",
+       caption = "Figure 3.22") +
   plotTheme
 
 # Tree Canopy 
 ggplot(dat_2011, aes(x= tree_share, y=mean_temp)) + 
   geom_point() +
-  labs(title = "Temperature and Tree Canopy Share 2011") +
+  labs(title = "Temperature and Tree Canopy Share 2011",
+       caption = "Figure 3.16") +
   plotTheme
 
 # Natural Land Cover
 ggplot(dat_2011, aes(x= surf_share, y=mean_temp)) + 
   geom_point() +
-  labs(title = "Temperature and Permeable Surfaces Share 2011") +
+  labs(title = "Temperature and Permeable Surfaces Share 2011",
+       caption = "Figure 3.18") +
   plotTheme
 
 ## Median Household Income
 ggplot(dat_2011, aes(x= median_hh_income, y=mean_temp)) + 
   geom_point() +
-  labs(title = "Mean Temperature and Median Household Income 2011") +
+  labs(title = "Mean Temperature and Median Household Income 2011",
+       caption = "Figure 3.20") +
   plotTheme
 
 
@@ -379,24 +413,29 @@ dat_2021 <- dat_2021 %>%
 # Population Density
 ggplot(dat_2021, aes(x=pop_dens, y=mean_temp)) + 
   geom_point() +
-  labs(title = "Temperature and Population Density 2021") +
+  labs(title = "Temperature and Population Density 2021",
+       caption = "Figure 3.23") +
   plotTheme
 
 # Tree Canopy 
 ggplot(dat_2021, aes(x= tree_share, y=mean_temp)) + 
   geom_point() +
-  labs(title = "Temperature and Tree Canopy Share 2021") +
+  labs(title = "Temperature and Tree Canopy Share 2021",
+       caption = "Figure 3.17") +
   plotTheme
 
 # Natural Land Cover
 ggplot(dat_2021, aes(x= surf_share, y=mean_temp)) + 
   geom_point() +
-  labs(title = "Temperature and Permeable Surfaces Share 2021") +
+  labs(title = "Temperature and Permeable Surfaces Share 2021",
+       caption = "Figure 3.19") +
   plotTheme
 
+# Median Household Income
 ggplot(dat_2021, aes(x= median_hh_income, y=mean_temp)) + 
   geom_point() +
-  labs(title = "Temperature and Median Household Income 2021") +
+  labs(title = "Temperature and Median Household Income 2021",
+       caption = "Figure 3.21") +
   plotTheme
 
 
@@ -438,12 +477,13 @@ vif(mod.2)
 # all of the VIF show that the independent variables have moderate correlation to the regression model
 
 #residuals
-plot(mod.final)
-plot(density(resid(mod.final)))
-residuals <- resid(mod.final)
-plot(residuals, main = "Residuals vs. Fitted Values", xlab = "Fitted Values", ylab = "Residuals")
+plot(mod.final.2, main = "2011 Plots")
+plot(density(resid(mod.final.2)), main = "2011 Plots")
 
-plot(mod.final.2)
-plot(density(resid(mod.final.2)))
+plot(mod.final, main = "2021 Plots")
+plot(density(resid(mod.final)), main = "2021 Plots")
+
+
+
 
 
